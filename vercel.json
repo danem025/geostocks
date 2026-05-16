@@ -1,16 +1,4 @@
 {
-  "version": 2,
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node@3.0.0"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/news", "destination": "/api/news" },
-    { "source": "/api/prices", "destination": "/api/prices" },
-    { "source": "/api/predictions", "destination": "/api/predictions" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
