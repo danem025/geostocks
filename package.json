@@ -1,0 +1,14 @@
+{
+  "name": "geostocks",
+  "version": "1.0.0",
+  "description": "GeoStocks — Market Intelligence Platform",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "rss-parser": "^3.13.0",
+    "xml2js": "^0.6.2"
+  }
+}
