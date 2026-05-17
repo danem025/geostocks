@@ -423,7 +423,7 @@ async function loadSectorColors() {
     });
     const rows = await res.json();
     if(Array.isArray(rows)) {
-      rows.forEach(r => { getSectorColor(r.sector) = r.color; });
+      rows.forEach(r => { SECTOR_COLOR[r.sector] = r.color; });
     }
   } catch(e) { /* use defaults */ }
 }
@@ -431,13 +431,13 @@ async function loadSectorColors() {
 // Get color for any sector — auto-assign if unknown
 async function sectorColor(sector) {
   if(!sector) return '#4a5a78';
-  if(getSectorColor(sector)) return getSectorColor(sector);
+  if(SECTOR_COLOR[sector]) return SECTOR_COLOR[sector];
 
   // New sector — assign from palette based on hash
   let hash = 0;
   for(const c of sector) hash = (hash * 31 + c.charCodeAt(0)) % COLOR_PALETTE.length;
   const color = COLOR_PALETTE[hash];
-  getSectorColor(sector) = color;
+  SECTOR_COLOR[sector] = color;
 
   // Save to Supabase asynchronously
   const SUPABASE_URL = 'https://npdrszmfymehaahxbcjk.supabase.co';
@@ -459,12 +459,12 @@ async function sectorColor(sector) {
 // Sync version for rendering (uses cached value)
 function getSectorColor(sector) {
   if(!sector) return '#4a5a78';
-  if(getSectorColor(sector)) return getSectorColor(sector);
+  if(SECTOR_COLOR[sector]) return SECTOR_COLOR[sector];
   // Auto-assign from palette
   let hash = 0;
   for(const c of sector) hash = (hash * 31 + c.charCodeAt(0)) % COLOR_PALETTE.length;
   const color = COLOR_PALETTE[hash];
-  getSectorColor(sector) = color;
+  SECTOR_COLOR[sector] = color;
   // Save async
   sectorColor(sector);
   return color;
