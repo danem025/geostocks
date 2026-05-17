@@ -302,6 +302,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
       <div class="ph-acts">
         <button class="pa on" id="gm-event" onclick="setGraphMode('event')">Event</button>
         <button class="pa" id="gm-full" onclick="setGraphMode('full')">Full map</button>
+        <button class="pa" id="gm-articles" onclick="setGraphMode('articles')">Articles</button>
         <button class="pa" id="gm-collapse" onclick="collapseGraph()" style="display:none">Collapse</button>
       </div>
     </div>
@@ -1584,7 +1585,12 @@ function zoomFit() {
 function pushHistory(state){graphHistory=graphHistory.slice(0,histIdx+1);graphHistory.push(state);histIdx=graphHistory.length-1;updateHistBtns();}
 function histBack(){if(histIdx<=0)return;histIdx--;restoreState(graphHistory[histIdx]);updateHistBtns();}
 function histFwd(){if(histIdx>=graphHistory.length-1)return;histIdx++;restoreState(graphHistory[histIdx]);updateHistBtns();}
-function restoreState(s){if(s.type==='event'){const ev=liveNews.find(n=>n.id===s.eventId);if(ev)initEventGraph(ev);}else if(s.type==='stock')selectStock(s.stockId);else if(s.type==='fullmap')drawFullMap();}
+function restoreState(s){
+  if(s.type==='event'){const ev=liveNews.find(n=>n.id===s.eventId);if(ev)initEventGraph(ev);}
+  else if(s.type==='stock')selectStock(s.stockId);
+  else if(s.type==='fullmap')drawFullMap();
+  else if(s.type==='articles')drawArticlesGraph();
+}
 function updateHistBtns(){document.getElementById('btn-back').disabled=histIdx<=0;document.getElementById('btn-fwd').disabled=histIdx>=graphHistory.length-1;}
 
 // ── LEGEND ────────────────────────────────────────────────────────────────────
@@ -1608,13 +1614,194 @@ function setGraphMode(mode){
   graphMode=mode;
   document.getElementById('gm-event').classList.toggle('on',mode==='event');
   document.getElementById('gm-full').classList.toggle('on',mode==='full');
+  document.getElementById('gm-articles').classList.toggle('on',mode==='articles');
   if(mode==='full'){
     drawFullMap();
     pushHistory({type:'fullmap'});
+  } else if(mode==='articles'){
+    drawArticlesGraph();
+    pushHistory({type:'articles'});
   } else if(selNewsId){
     const ev=liveNews.find(n=>n.id===selNewsId);
     if(ev) initEventGraph(ev);
   }
+}
+
+function drawArticlesGraph() {
+  if(!d3svg) initD3();
+  document.getElementById('graph-empty').style.display='none';
+  document.getElementById('graph-legend').style.display='none';
+  document.getElementById('p2-title').textContent='Article clusters';
+  document.getElementById('gm-collapse').style.display='none';
+  Object.keys(posCache).forEach(k => delete posCache[k]);
+
+  const wrap = document.getElementById('graph-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+
+  // Use top 30 articles max to keep graph readable
+  const articles = liveNews.slice(0, 30).filter(n => n.graphNodes && n.graphNodes.length > 0);
+  if(!articles.length) return;
+
+  // Build nodes — one per article
+  const nodes = articles.map(n => {
+    const rootStock = STOCKS[n.rootId];
+    const color = getSectorColor(n.sectors?.[0]) || '#00d9ff';
+    return {
+      id: n.id,
+      label: n.hl.slice(0, 35) + '…',
+      shortLabel: n.src,
+      color,
+      r: 8 + Math.min(n.graphNodes.length * 2, 16),
+      type: n.type,
+      flags: (n.flags||[]).filter(f=>!['→','↔️','⚡','⚠️'].includes(f)).slice(0,1).join(''),
+      stocks: n.graphNodes,
+      ago: n.ago,
+    };
+  });
+
+  // Build links — articles sharing stocks are connected
+  const links = [];
+  for(let i=0; i<nodes.length; i++){
+    for(let j=i+1; j<nodes.length; j++){
+      const shared = nodes[i].stocks.filter(s => nodes[j].stocks.includes(s));
+      if(shared.length > 0){
+        links.push({
+          source: nodes[i].id,
+          target: nodes[j].id,
+          w: shared.length,
+          shared,
+          rel: shared.map(s => STOCKS[s]?.name || s).join(', '),
+        });
+      }
+    }
+  }
+
+  if(simulation) simulation.stop();
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(d => 80 + (3-d.w)*20))
+    .force('charge', d3.forceManyBody().strength(d => -(100 + d.r*10)))
+    .force('collide', d3.forceCollide().radius(d => d.r+30).strength(0.8))
+    .force('center', d3.forceCenter(0, 0).strength(0.05))
+    .alphaDecay(0.03)
+    .velocityDecay(0.4);
+
+  // Draw links
+  const linkSel = d3.select('#g-links')
+    .selectAll('line')
+    .data(links, d => d.source+'_'+d.target)
+    .join('line')
+    .attr('stroke', '#00d9ff')
+    .attr('stroke-width', d => 0.5 + d.w*0.5)
+    .attr('stroke-opacity', d => 0.05 + d.w*0.1)
+    .style('cursor','pointer')
+    .on('mouseover', function(e, d) {
+      showGraphTooltip(e, `<b>Shared stocks</b><br><span style="opacity:.8">${d.rel}</span>`);
+      d3.select(this).attr('stroke-opacity', 0.7);
+    })
+    .on('mouseout', function(e, d) {
+      hideGraphTooltip();
+      d3.select(this).attr('stroke-opacity', 0.05 + d.w*0.1);
+    });
+
+  // Draw nodes
+  const nodeSel = d3.select('#g-nodes')
+    .selectAll('g.gnode')
+    .data(nodes, d => d.id)
+    .join(enter => {
+      const g = enter.append('g').attr('class','gnode').style('cursor','pointer');
+
+      // Circle
+      g.append('circle').attr('class','main')
+        .attr('r', d => d.r)
+        .attr('fill', d => `${d.color}25`)
+        .attr('stroke', d => d.color)
+        .attr('stroke-width', 1.5)
+        .attr('filter','url(#glow)');
+
+      // Flag/emoji
+      g.append('text')
+        .attr('text-anchor','middle')
+        .attr('y', d => -d.r-5)
+        .attr('font-size', 11)
+        .text(d => d.flags || '📰');
+
+      // Source badge
+      g.append('text')
+        .attr('class','label')
+        .attr('text-anchor','middle')
+        .attr('y', 3)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', 8)
+        .attr('fill', d => d.color)
+        .attr('font-weight','500')
+        .text(d => d.shortLabel);
+
+      // Label background + headline below
+      g.append('rect').attr('class','label-bg')
+        .attr('rx',3).attr('ry',3)
+        .attr('fill', d => `${d.color}cc`)
+        .attr('height',12);
+
+      g.append('text').attr('class','label-hl')
+        .attr('text-anchor','middle')
+        .attr('y', d => d.r+16)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', 7.5)
+        .attr('fill','white')
+        .text(d => d.label);
+
+      // Time ago
+      g.append('text')
+        .attr('text-anchor','middle')
+        .attr('y', d => d.r+27)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', 7)
+        .attr('fill','rgba(200,200,255,0.4)')
+        .text(d => d.ago);
+
+      return g;
+    }, update => update)
+    .on('click', (e, d) => {
+      e.stopPropagation();
+      // Select the article in P1
+      selectNews(d.id);
+      // Highlight connected articles
+      d3.select('#g-nodes').selectAll('g.gnode')
+        .style('opacity', n => {
+          if(n.id === d.id) return 1;
+          const connected = links.some(l =>
+            (l.source.id||l.source)===d.id&&(l.target.id||l.target)===n.id ||
+            (l.target.id||l.target)===d.id&&(l.source.id||l.source)===n.id
+          );
+          return connected ? 1 : 0.2;
+        });
+    });
+
+  // Drag
+  nodeSel.call(d3.drag()
+    .on('start', (e,d) => { if(!e.active) simulation.alphaTarget(0.2).restart(); d.fx=d.x; d.fy=d.y; })
+    .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
+    .on('end',   (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; })
+  );
+
+  // Tick
+  simulation.on('tick', () => {
+    linkSel
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeSel.attr('transform', d => `translate(${d.x||0},${d.y||0})`);
+    nodeSel.each(function(d) {
+      const textEl = d3.select(this).select('.label-hl');
+      const bgEl = d3.select(this).select('.label-bg');
+      try {
+        const bbox = textEl.node().getBBox();
+        bgEl.attr('x', bbox.x-3).attr('y', bbox.y-1).attr('width', bbox.width+6).attr('height', bbox.height+2);
+      } catch(e) {}
+    });
+  });
+
+  document.getElementById('gc-info').textContent = `${articles.length} articles · ${links.length} connections`;
 }
 // ── SPLIT ─────────────────────────────────────────────────────────────────────
 function toggleSplit(){
