@@ -118,7 +118,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 .ni-arr{font-size:8.5px;color:var(--mu);}
 .ni-meta{display:flex;align-items:center;gap:3px;margin-bottom:4px;flex-wrap:wrap;}
 .ni-type{font-family:'DM Mono',monospace;font-size:8px;padding:1px 5px;border-radius:3px;border:1px solid transparent;}
-.ni-src{font-family:'DM Mono',monospace;font-size:8px;padding:1px 5px;background:var(--s3);border:1px solid var(--b1);border-radius:3px;color:var(--mu);}
+.ni-src{font-family:'DM Mono',monospace;font-size:8px;padding:1px 5px;background:var(--s3);border:1px solid var(--b1);border-radius:3px;color:var(--mu);cursor:pointer;transition:all .15s;}
+.ni-src:hover{border-color:var(--acc);color:var(--acc);}
+.ni-src.active{background:rgba(0,217,255,.12);border-color:var(--acc);color:var(--acc);}
 .ni-lang{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);opacity:.55;}
 .ni-stocks{display:flex;gap:3px;flex-wrap:wrap;}
 .ni-stk{font-family:'DM Mono',monospace;font-size:8.5px;padding:1px 6px;border-radius:3px;border:1px solid;cursor:pointer;transition:opacity .1s;}
@@ -280,9 +282,20 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 
 <div id="workspace">
   <div id="p1">
-    <div class="ph">
+    <div class="ph" style="position:relative;">
       <span class="ph-title" id="p1-title">Live signals</span>
-      <span class="col-cnt" id="news-cnt">—</span>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <button class="pa" id="sources-btn" onclick="toggleSourcesDropdown()" style="font-size:8.5px;padding:2px 7px;">Sources ▾</button>
+        <span class="col-cnt" id="news-cnt">—</span>
+      </div>
+      <!-- Sources dropdown -->
+      <div id="sources-drop" style="display:none;position:absolute;top:34px;right:0;width:200px;background:var(--s1);border:1px solid var(--b2);border-radius:0 0 8px 8px;z-index:200;box-shadow:0 8px 20px rgba(0,0,0,.4);max-height:280px;overflow-y:auto;">
+        <div style="padding:6px 10px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;">Sources</span>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--acc);cursor:pointer;" onclick="clearSourceFilter()">Show all</span>
+        </div>
+        <div id="sources-list"></div>
+      </div>
     </div>
     <div class="p1-inner">
       <div class="news-col full" id="news-col">
@@ -1000,6 +1013,19 @@ let activeRegions = new Set(['all']);
 let activeTypes = new Set(['geopolitical','economic','energy','tech','trade','monetary']);
 let activeSectors = new Set(['all']);
 let splitActive = false;
+let activeSource = null; // currently filtered source
+
+function filterBySource(src) {
+  if(activeSource === src) {
+    activeSource = null;
+    document.getElementById('p1-title').textContent = 'Live signals';
+  } else {
+    activeSource = src;
+    document.getElementById('p1-title').innerHTML =
+      `Live signals <span style="font-size:8px;color:var(--acc);cursor:pointer;margin-left:6px;font-family:'DM Mono',monospace" onclick="filterBySource('${src}')">✕ ${src}</span>`;
+  }
+  applyFilters();
+}
 let graphMode = 'event';
 let selNewsId = null;
 let selStockId = null;
@@ -1040,6 +1066,7 @@ function applyFilters() {
     if(!activeRegions.has('all')&&!n.regions.some(r=>activeRegions.has(r))) return false;
     if(!activeTypes.has(n.type)) return false;
     if(!activeSectors.has('all')&&!n.sectors.some(s=>activeSectors.has(s))) return false;
+    if(activeSource && n.src !== activeSource) return false;
     if(q&&!n.hl.toLowerCase().includes(q)&&!(n.rootId&&n.rootId.toLowerCase().includes(q))) return false;
     return true;
   };
@@ -1082,7 +1109,7 @@ function renderFeed(items) {
     return `<div class="ni${selNewsId===n.id?' sel':''}${n.isLive?' live-news':''}" id="ni-${n.id}" onclick="selectNews('${n.id}')">
       <div class="ni-top"><span class="ni-hl">${n.hl}${liveBadge}</span><span class="ni-ago">${n.ago}</span></div>
       <div class="ni-flags">${flags}</div>
-      <div class="ni-meta"><span class="ni-type" style="background:${t.bg};border-color:${t.bd};color:${t.tx}">${n.type}</span><span class="ni-src">${n.src}</span><span class="ni-lang">${n.lang}</span></div>
+      <div class="ni-meta"><span class="ni-type" style="background:${t.bg};border-color:${t.bd};color:${t.tx}">${n.type}</span><span class="ni-src${activeSource===n.src?' active':''}" onclick="event.stopPropagation();filterBySource('${n.src}')">${n.src}</span><span class="ni-lang">${n.lang}</span></div>
       <div class="ni-stocks">${stkHtml}</div>
     </div>`;
   }).join('');
@@ -1262,6 +1289,7 @@ function syncFeedToStock(stockId) {
 }
 
 function resetFeedFilter() {
+  activeSource = null;
   document.querySelectorAll('.ni').forEach(el => {
     el.style.opacity = '1';
     el.style.borderLeftColor = '';
@@ -1942,7 +1970,43 @@ function drawArticlesGraph(filteredNews) {
   document.getElementById('gc-info').textContent = `${scored.length} articles · ${links.length} connections`;
 }
 
-function toggleSplit(){
+function toggleSourcesDropdown() {
+  const drop = document.getElementById('sources-drop');
+  const isOpen = drop.style.display !== 'none';
+  if(!isOpen) buildSourcesList();
+  drop.style.display = isOpen ? 'none' : 'block';
+}
+
+function buildSourcesList() {
+  // Get all unique sources from current news
+  const sources = [...new Set(liveNews.map(n=>n.src).filter(Boolean))].sort();
+  const el = document.getElementById('sources-list');
+  el.innerHTML = sources.map(src => {
+    const count = liveNews.filter(n=>n.src===src).length;
+    const isActive = activeSource === src;
+    return `<div onclick="filterBySource('${src}');toggleSourcesDropdown()"
+      style="padding:7px 10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--b1);transition:background .1s;${isActive?'background:rgba(0,217,255,.08);':''}"
+      onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background='${isActive?'rgba(0,217,255,.08)':'transparent'}'">
+      <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:${isActive?'var(--acc)':'var(--tx)'};">${src}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);">${count}</span>
+    </div>`;
+  }).join('');
+}
+
+function clearSourceFilter() {
+  activeSource = null;
+  document.getElementById('p1-title').textContent = 'Live signals';
+  document.getElementById('sources-drop').style.display = 'none';
+  applyFilters();
+}
+
+// Close sources dropdown on outside click
+document.addEventListener('click', e => {
+  if(!e.target.closest('#sources-drop') && !e.target.closest('#sources-btn')) {
+    const drop = document.getElementById('sources-drop');
+    if(drop) drop.style.display = 'none';
+  }
+});
   splitActive=!splitActive;
   const btn=document.getElementById('split-btn');
   const predCol=document.getElementById('pred-col');
