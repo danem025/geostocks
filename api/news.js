@@ -74,7 +74,9 @@ function regionToFlag(r) {
 async function readFromSupabase(filters = {}) {
   if(!SUPABASE_URL || !SUPABASE_KEY) return null;
   try {
-    let url = `${SUPABASE_URL}/rest/v1/news_items?order=fetched_at.desc&limit=100`;
+    // Only fetch last 48h
+    const cutoff = new Date(Date.now() - 48*60*60*1000).toISOString();
+    let url = `${SUPABASE_URL}/rest/v1/news_items?order=fetched_at.desc&limit=100&fetched_at=gte.${cutoff}`;
     if(filters.region && filters.region !== 'all') {
       url += `&regions=cs.{${filters.region}}`;
     }
@@ -90,14 +92,17 @@ async function readFromSupabase(filters = {}) {
     });
     const data = await res.json();
     if(!Array.isArray(data) || data.length === 0) return null;
-    // Map snake_case back to camelCase
-    return data.map(n => ({
-      id: n.id, type: n.type,
-      regions: n.regions, sectors: n.sectors,
-      flags: n.flags, hl: n.hl, src: n.src, lang: n.lang,
-      ago: n.ago, rootId: n.root_id,
-      graphNodes: n.graph_nodes, isLive: n.is_live,
-    }));
+    // Map snake_case back to camelCase, sort by fetched_at desc
+    return data
+      .sort((a,b) => new Date(b.fetched_at) - new Date(a.fetched_at))
+      .map(n => ({
+        id: n.id, type: n.type,
+        regions: n.regions, sectors: n.sectors,
+        flags: n.flags, hl: n.hl, src: n.src, lang: n.lang,
+        ago: timeAgo(new Date(n.fetched_at).getTime()),
+        rootId: n.root_id,
+        graphNodes: n.graph_nodes, isLive: n.is_live,
+      }));
   } catch(e) {
     console.error('Supabase read error:', e.message);
     return null;
