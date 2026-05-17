@@ -387,28 +387,294 @@ const LAYERS = [
 ];
 
 const STOCKS = {
-  ASML: {name:'ASML',         flag:'🇳🇱',layer:'lit',color:'#ffd166',r:18,desc:'Only EUV lithography machine maker. Global foundry chokepoint.',cascade:[{id:'TSM',w:10},{id:'SSNLF',w:9},{id:'KLAC',w:6},{id:'AMAT',w:7}],src:[{b:'Reuters EN',h:'EU mulls new EUV export curbs targeting China fabs...'},{b:'NRC NL→EN',h:'ASML onder druk door exportregels Brussel...'}],sectors:['semi'],regions:['europe']},
-  TSM:  {name:'TSMC',         flag:'🇹🇼',layer:'fab',color:'#06d6a0',r:22,desc:'90%+ of world\'s advanced chips. Most critical AI supply chain node.',cascade:[{id:'NVDA',w:10},{id:'AMD',w:9},{id:'AAPL',w:10},{id:'QCOM',w:9}],src:[{b:'Nikkei JA→EN',h:'Taiwan Strait tensions rise...'},{b:'Reuters EN',h:'TSMC supply chain risk flagged...'}],sectors:['semi'],regions:['asia']},
-  NVDA: {name:'Nvidia',       flag:'🇺🇸',layer:'chp',color:'#118ab2',r:26,desc:'Dominant AI GPU maker. H100/B200. Most critical AI company today.',cascade:[{id:'AMZN',w:10},{id:'MSFT',w:10},{id:'GOOGL',w:9},{id:'CRWV',w:10}],src:[{b:'Bloomberg EN',h:'Nvidia Q3 earnings beat — datacenter demand record...'},{b:'WSJ EN',h:'AI chip demand outpaces supply...'}],sectors:['semi','ai'],regions:['americas']},
-  AMD:  {name:'AMD',          flag:'🇺🇸',layer:'chp',color:'#118ab2',r:16,desc:'MI300X AI GPU — growing Nvidia challenger.',cascade:[{id:'MSFT',w:5},{id:'AMZN',w:4}],src:[{b:'Bloomberg EN',h:'AMD gains AI market share on Nvidia supply limits...'}],sectors:['semi','ai'],regions:['americas']},
-  AAPL: {name:'Apple Silicon',flag:'🇺🇸',layer:'chp',color:'#118ab2',r:22,desc:'M-series chips. 100% TSMC dependent for advanced nodes.',cascade:[],src:[{b:'Bloomberg EN',h:'Apple Silicon leads edge AI benchmarks...'}],sectors:['semi','ai'],regions:['americas']},
-  QCOM: {name:'Qualcomm',     flag:'🇺🇸',layer:'chp',color:'#118ab2',r:14,desc:'Edge AI and mobile NPUs.',cascade:[],src:[{b:'Reuters EN',h:'Qualcomm edge AI gains traction in premium mobiles...'}],sectors:['semi'],regions:['americas']},
-  SSNLF:{name:'Samsung F.',   flag:'🇰🇷',layer:'fab',color:'#06d6a0',r:17,desc:'Second largest foundry, competing at 3nm GAA.',cascade:[{id:'QCOM',w:6}],src:[{b:'KJA KO→EN',h:'Samsung foundry faces EU EUV restriction cascade...'}],sectors:['semi'],regions:['asia']},
-  KLAC: {name:'KLA Corp',     flag:'🇺🇸',layer:'lit',color:'#ffd166',r:13,desc:'Process control and wafer inspection equipment.',cascade:[{id:'TSM',w:6},{id:'SSNLF',w:5}],src:[{b:'WSJ EN',h:'Semi equipment stocks fall on EU restriction fears...'}],sectors:['semi'],regions:['americas']},
-  AMAT: {name:'Applied Matls',flag:'🇺🇸',layer:'lit',color:'#ffd166',r:14,desc:'Deposition and etch equipment for fabs.',cascade:[{id:'TSM',w:7},{id:'SSNLF',w:6}],src:[{b:'Bloomberg EN',h:'Applied Materials falls on semiconductor concerns...'}],sectors:['semi'],regions:['americas']},
-  AMZN: {name:'AWS',          flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:18,desc:'Largest cloud. Trainium AI chips. Primary Anthropic infra.',cascade:[],src:[{b:'Reuters EN',h:'AWS announces new GPU cluster capacity...'}],sectors:['ai','semi'],regions:['americas']},
-  MSFT: {name:'Azure',        flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:18,desc:'Microsoft cloud. Exclusive OpenAI infra partner.',cascade:[],src:[{b:'Bloomberg EN',h:'Azure OpenAI capacity reaches new milestone...'}],sectors:['ai','semi'],regions:['americas']},
-  GOOGL:{name:'GCP/DeepMind', flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:19,desc:'Google Cloud + DeepMind. TPUs. Anthropic + Gemini.',cascade:[],src:[{b:'WSJ EN',h:'GCP TPU v5 accelerates AI training...'}],sectors:['ai','semi'],regions:['americas']},
-  CRWV: {name:'CoreWeave',    flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:11,desc:'GPU-native cloud. 100% Nvidia dependent.',cascade:[],src:[{b:'Bloomberg EN',h:'CoreWeave GPU cloud expands on OpenAI demand...'}],sectors:['ai','semi'],regions:['americas']},
-  META: {name:'Meta AI',      flag:'🇺🇸',layer:'ai', color:'#ef4444',r:18,desc:'Llama open-source models — biggest open AI ecosystem.',cascade:[],src:[{b:'WSJ EN',h:'Meta Llama 4 drives enterprise AI adoption...'}],sectors:['ai'],regions:['americas']},
-  VST:  {name:'Vistra Energy',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:15,desc:'Nuclear + gas — biggest AI datacenter power play.',cascade:[{id:'CEG',w:7},{id:'NEE',w:5}],src:[{b:'FT EN',h:'Microsoft confirms TMI nuclear restart deal...'},{b:'CNBC EN',h:'Nuclear stocks surge on AI power demand...'}],sectors:['energy_s','ai'],regions:['americas']},
-  CEG:  {name:'Constellation',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:13,desc:'Nuclear energy — sector re-rating on AI power theme.',cascade:[],src:[{b:'Reuters EN',h:'Constellation follows Vistra on datacenter nuclear...'}],sectors:['energy_s'],regions:['americas']},
-  NEE:  {name:'NextEra Energy',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:14,desc:'Largest US renewable energy producer.',cascade:[],src:[{b:'Bloomberg EN',h:'NextEra benefits from AI datacenter renewable contracts...'}],sectors:['energy_s'],regions:['americas']},
-  XOM:  {name:'ExxonMobil',   flag:'🇺🇸',layer:'oil',color:'#eab308',r:17,desc:'Largest US oil major. Hormuz strait exposure.',cascade:[],src:[{b:'Reuters EN',h:'ExxonMobil benefits from Hormuz tension oil spike...'}],sectors:['oil'],regions:['americas','mena']},
-  SHEL: {name:'Shell',        flag:'🇬🇧',layer:'oil',color:'#eab308',r:15,desc:'Global oil major. LNG and Hormuz exposure.',cascade:[],src:[{b:'FT EN',h:'Shell LNG shipments at risk from Hormuz disruption...'}],sectors:['oil'],regions:['europe','mena']},
-  AMKBY:{name:'Maersk',       flag:'🇩🇰',layer:'shp',color:'#60a5fa',r:14,desc:'Largest container shipping. Taiwan Strait and Hormuz route.',cascade:[],src:[{b:'Børsen DA→EN',h:'Maersk reroutes vessels amid Taiwan tensions...'},{b:'Reuters EN',h:'Maersk shipping rates surge on geopolitical risk...'}],sectors:['shipping'],regions:['europe','asia']},
-  JPM:  {name:'JPMorgan',     flag:'🇺🇸',layer:'fin',color:'#a78bfa',r:15,desc:'Largest US bank. Fed rate sensitive.',cascade:[],src:[{b:'Bloomberg EN',h:'JPMorgan Q3 earnings impacted by credit costs...'}],sectors:['finance'],regions:['americas']},
+  // ── LITHO / EQUIPMENT ─────────────────────────────────────────────────────
+  ASML: {name:'ASML',         flag:'🇳🇱',layer:'lit',color:'#ffd166',r:18,desc:'Only EUV lithography machine maker. Global foundry chokepoint — no ASML, no advanced chips.',
+    cascade:[
+      {id:'TSM',  w:10, rel:'Customer — 100% of TSMC EUV machines'},
+      {id:'SSNLF',w:9,  rel:'Customer — Samsung Foundry EUV'},
+      {id:'INTC', w:7,  rel:'Customer — Intel Foundry EUV'},
+      {id:'KLAC', w:5,  rel:'Peer — Semi equipment sector'},
+      {id:'AMAT', w:5,  rel:'Peer — Semi equipment sector'},
+      {id:'LRCX', w:4,  rel:'Peer — Semi equipment sector'},
+    ],
+    peers:['KLAC','AMAT','LRCX','TOELY'],
+    src:[{b:'Reuters EN',h:'EU mulls new EUV export curbs targeting China fabs...'},{b:'NRC NL→EN',h:'ASML onder druk door exportregels Brussel...'}],sectors:['semi'],regions:['europe']},
+
+  KLAC: {name:'KLA Corp',     flag:'🇺🇸',layer:'lit',color:'#ffd166',r:13,desc:'Process control and wafer inspection. Every chip fab needs KLA equipment.',
+    cascade:[
+      {id:'TSM',  w:7, rel:'Customer — KLA inspection at TSMC fabs'},
+      {id:'SSNLF',w:6, rel:'Customer — KLA inspection at Samsung'},
+      {id:'INTC', w:5, rel:'Customer — KLA inspection at Intel'},
+    ],
+    peers:['ASML','AMAT','LRCX'],
+    src:[{b:'WSJ EN',h:'Semi equipment stocks fall on EU restriction fears...'}],sectors:['semi'],regions:['americas']},
+
+  AMAT: {name:'Applied Matls',flag:'🇺🇸',layer:'lit',color:'#ffd166',r:14,desc:'Deposition and etch equipment. Used in every chip fab worldwide.',
+    cascade:[
+      {id:'TSM',  w:7, rel:'Customer — deposition equipment'},
+      {id:'SSNLF',w:6, rel:'Customer — deposition equipment'},
+      {id:'INTC', w:5, rel:'Customer — deposition equipment'},
+    ],
+    peers:['ASML','KLAC','LRCX'],
+    src:[{b:'Bloomberg EN',h:'Applied Materials falls on semiconductor concerns...'}],sectors:['semi'],regions:['americas']},
+
+  LRCX: {name:'Lam Research',  flag:'🇺🇸',layer:'lit',color:'#ffd166',r:13,desc:'Etch and deposition equipment. Critical for memory and logic chips.',
+    cascade:[
+      {id:'TSM',  w:6, rel:'Customer — etch equipment'},
+      {id:'SSNLF',w:6, rel:'Customer — memory etch equipment'},
+      {id:'MU',   w:7, rel:'Customer — Micron memory fabs'},
+    ],
+    peers:['ASML','KLAC','AMAT'],
+    src:[{b:'Reuters EN',h:'Lam Research benefits from memory chip capex cycle...'}],sectors:['semi'],regions:['americas']},
+
+  // ── FOUNDRIES ─────────────────────────────────────────────────────────────
+  TSM:  {name:'TSMC',         flag:'🇹🇼',layer:'fab',color:'#06d6a0',r:22,desc:'90%+ of world\'s advanced chips. Fabless model — designs from everywhere, made in Taiwan.',
+    cascade:[
+      {id:'NVDA', w:10, rel:'Customer — 100% of Nvidia GPUs'},
+      {id:'AMD',  w:9,  rel:'Customer — 90% of AMD chips'},
+      {id:'AAPL', w:10, rel:'Customer — 100% of Apple Silicon'},
+      {id:'QCOM', w:9,  rel:'Customer — Snapdragon chips'},
+      {id:'AVGO', w:8,  rel:'Customer — custom AI chips'},
+      {id:'MRVL', w:7,  rel:'Customer — data infrastructure chips'},
+    ],
+    peers:['SSNLF','INTC','GFS'],
+    src:[{b:'Nikkei JA→EN',h:'Taiwan Strait tensions rise...'},{b:'Reuters EN',h:'TSMC supply chain risk flagged...'}],sectors:['semi'],regions:['asia']},
+
+  SSNLF:{name:'Samsung F.',   flag:'🇰🇷',layer:'fab',color:'#06d6a0',r:17,desc:'Second largest foundry. Competing with TSMC at 3nm GAA. Also makes memory.',
+    cascade:[
+      {id:'QCOM', w:6, rel:'Customer — some Snapdragon chips'},
+      {id:'NVDA', w:4, rel:'Potential customer — diversification'},
+      {id:'MU',   w:3, rel:'Peer — memory competition'},
+    ],
+    peers:['TSM','INTC','MU'],
+    src:[{b:'Korea JoongAng KO→EN',h:'Samsung foundry faces EU EUV restriction cascade...'}],sectors:['semi'],regions:['asia']},
+
+  INTC: {name:'Intel Foundry', flag:'🇺🇸',layer:'fab',color:'#06d6a0',r:13,desc:'Intel 18A process node — US domestic chip manufacturing push.',
+    cascade:[
+      {id:'NVDA', w:3, rel:'Potential customer — US manufacturing'},
+      {id:'QCOM', w:3, rel:'Potential customer — US manufacturing'},
+      {id:'MSFT', w:4, rel:'Strategic partner — US gov chips'},
+    ],
+    peers:['TSM','SSNLF','GFS'],
+    src:[{b:'Bloomberg EN',h:'Intel foundry wins first major external AI chip order...'}],sectors:['semi'],regions:['americas']},
+
+  // ── CHIP DESIGN ───────────────────────────────────────────────────────────
+  NVDA: {name:'Nvidia',       flag:'🇺🇸',layer:'chp',color:'#118ab2',r:26,desc:'Dominant AI GPU. H100/B200/B300. Most critical AI company today — no Nvidia, no AI.',
+    cascade:[
+      {id:'AMZN', w:10, rel:'Customer — AWS uses Nvidia GPUs'},
+      {id:'MSFT', w:10, rel:'Customer — Azure uses Nvidia GPUs'},
+      {id:'GOOGL',w:9,  rel:'Customer — GCP uses Nvidia GPUs'},
+      {id:'CRWV', w:10, rel:'Customer — CoreWeave 100% Nvidia'},
+      {id:'META', w:9,  rel:'Customer — Meta AI training'},
+      {id:'ORCL', w:8,  rel:'Customer — Oracle cloud GPUs'},
+      {id:'TSM',  w:10, rel:'Supplier — TSMC makes all Nvidia chips'},
+    ],
+    peers:['AMD','INTC','QCOM'],
+    src:[{b:'Bloomberg EN',h:'Nvidia Q3 earnings beat — datacenter demand record...'},{b:'WSJ EN',h:'AI chip demand outpaces supply...'}],sectors:['semi','ai'],regions:['americas']},
+
+  AMD:  {name:'AMD',          flag:'🇺🇸',layer:'chp',color:'#118ab2',r:16,desc:'MI300X AI GPU. EPYC server CPUs. Growing challenger to Nvidia in AI.',
+    cascade:[
+      {id:'MSFT', w:5, rel:'Customer — Azure MI300X deployment'},
+      {id:'AMZN', w:4, rel:'Customer — AWS MI300X'},
+      {id:'TSM',  w:9, rel:'Supplier — TSMC makes AMD chips'},
+      {id:'NVDA', w:7, rel:'Competitor — AI GPU market'},
+    ],
+    peers:['NVDA','INTC','QCOM'],
+    src:[{b:'Bloomberg EN',h:'AMD gains AI market share on Nvidia supply limits...'}],sectors:['semi','ai'],regions:['americas']},
+
+  AAPL: {name:'Apple Silicon',flag:'🇺🇸',layer:'chp',color:'#118ab2',r:22,desc:'M-series and A-series. World\'s most efficient edge AI chips. 100% TSMC.',
+    cascade:[
+      {id:'TSM',  w:10, rel:'Supplier — 100% TSMC dependency'},
+      {id:'QCOM', w:4,  rel:'Competitor — mobile chips'},
+    ],
+    peers:['QCOM','NVDA','AMD'],
+    src:[{b:'Bloomberg EN',h:'Apple Silicon leads edge AI benchmarks...'}],sectors:['semi','ai'],regions:['americas']},
+
+  QCOM: {name:'Qualcomm',     flag:'🇺🇸',layer:'chp',color:'#118ab2',r:14,desc:'Snapdragon — dominant mobile AI chip. Edge AI push into PCs.',
+    cascade:[
+      {id:'TSM',  w:9, rel:'Supplier — TSMC Snapdragon fabs'},
+      {id:'SSNLF',w:4, rel:'Supplier — some Samsung fabs'},
+      {id:'AAPL', w:5, rel:'Competitor — Apple Silicon vs Snapdragon'},
+    ],
+    peers:['AAPL','AMD','NVDA','MRVL'],
+    src:[{b:'Reuters EN',h:'Qualcomm edge AI gains traction in premium mobiles...'}],sectors:['semi'],regions:['americas']},
+
+  AVGO: {name:'Broadcom',     flag:'🇺🇸',layer:'chp',color:'#118ab2',r:17,desc:'Custom AI XPUs for Google TPU and Meta MTIA. Networking chips.',
+    cascade:[
+      {id:'TSM',  w:9, rel:'Supplier — TSMC custom chips'},
+      {id:'GOOGL',w:8, rel:'Customer — Google TPU design'},
+      {id:'META', w:7, rel:'Customer — Meta MTIA custom AI chip'},
+    ],
+    peers:['NVDA','AMD','MRVL','QCOM'],
+    src:[{b:'Bloomberg EN',h:'Broadcom custom AI chip revenue accelerates...'}],sectors:['semi','ai'],regions:['americas']},
+
+  MRVL: {name:'Marvell',      flag:'🇺🇸',layer:'chp',color:'#118ab2',r:12,desc:'Custom AI chips and networking. Growing custom silicon player.',
+    cascade:[
+      {id:'TSM',  w:9, rel:'Supplier — TSMC fabs'},
+      {id:'AMZN', w:7, rel:'Customer — AWS Trainium/Inferentia'},
+      {id:'MSFT', w:6, rel:'Customer — Azure custom silicon'},
+    ],
+    peers:['AVGO','NVDA','AMD'],
+    src:[{b:'Bloomberg EN',h:'Marvell custom AI chip wins accelerate datacenter penetration...'}],sectors:['semi','ai'],regions:['americas']},
+
+  MU:   {name:'Micron',       flag:'🇺🇸',layer:'chp',color:'#118ab2',r:14,desc:'HBM memory — critical for AI GPUs. Every Nvidia H100 uses Micron/SK Hynix HBM.',
+    cascade:[
+      {id:'NVDA', w:9, rel:'Customer — HBM3 in H100/H200'},
+      {id:'AMD',  w:7, rel:'Customer — HBM in MI300X'},
+      {id:'TSM',  w:4, rel:'Peer — both need ASML/AMAT'},
+    ],
+    peers:['SSNLF','SKX','KIOXIA'],
+    src:[{b:'Bloomberg EN',h:'Micron HBM demand surges on AI GPU orders...'}],sectors:['semi'],regions:['americas']},
+
+  // ── CLOUD ─────────────────────────────────────────────────────────────────
+  AMZN: {name:'AWS',          flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:18,desc:'Largest cloud. Trainium2 AI chips. Primary Anthropic infra. 33% cloud market.',
+    cascade:[
+      {id:'NVDA', w:10, rel:'Supplier — GPU fleet'},
+      {id:'INTC', w:6,  rel:'Supplier — server CPUs'},
+      {id:'MRVL', w:7,  rel:'Supplier — Trainium chip design'},
+    ],
+    peers:['MSFT','GOOGL','ORCL'],
+    src:[{b:'Reuters EN',h:'AWS announces new GPU cluster capacity...'}],sectors:['ai','semi'],regions:['americas']},
+
+  MSFT: {name:'Azure/Microsoft',flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:18,desc:'Microsoft cloud. Exclusive OpenAI partner. Copilot AI across all products.',
+    cascade:[
+      {id:'NVDA', w:10, rel:'Supplier — GPU fleet'},
+      {id:'AMD',  w:5,  rel:'Supplier — MI300X deployment'},
+      {id:'INTC', w:5,  rel:'Supplier — server CPUs'},
+      {id:'VST',  w:7,  rel:'Customer — nuclear power deal TMI'},
+    ],
+    peers:['AMZN','GOOGL','ORCL'],
+    src:[{b:'Bloomberg EN',h:'Azure OpenAI capacity reaches new milestone...'}],sectors:['ai','semi'],regions:['americas']},
+
+  GOOGL:{name:'Google/GCP',   flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:19,desc:'GCP + DeepMind + Gemini. TPU custom AI chips. Anthropic partner.',
+    cascade:[
+      {id:'NVDA', w:9,  rel:'Supplier — GPU fleet'},
+      {id:'AVGO', w:8,  rel:'Supplier — TPU custom chips'},
+      {id:'TSM',  w:8,  rel:'Supplier — TPU fabrication'},
+    ],
+    peers:['AMZN','MSFT','ORCL'],
+    src:[{b:'WSJ EN',h:'GCP TPU v5 accelerates AI training...'}],sectors:['ai','semi'],regions:['americas']},
+
+  CRWV: {name:'CoreWeave',    flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:11,desc:'GPU-native cloud. 100% Nvidia dependent. OpenAI primary compute provider.',
+    cascade:[
+      {id:'NVDA', w:10, rel:'Supplier — 100% Nvidia dependency'},
+      {id:'META', w:5,  rel:'Customer — AI training workloads'},
+    ],
+    peers:['AMZN','MSFT','GOOGL','ORCL'],
+    src:[{b:'Bloomberg EN',h:'CoreWeave GPU cloud expands on OpenAI demand...'}],sectors:['ai','semi'],regions:['americas']},
+
+  ORCL: {name:'Oracle Cloud',  flag:'🇺🇸',layer:'cld',color:'#8b5cf6',r:14,desc:'OCI cloud. Hosts xAI Colossus 100k GPU cluster. Enterprise AI.',
+    cascade:[
+      {id:'NVDA', w:9, rel:'Supplier — massive GPU fleet'},
+      {id:'AMZN', w:4, rel:'Competitor — cloud market'},
+    ],
+    peers:['AMZN','MSFT','GOOGL'],
+    src:[{b:'Reuters EN',h:'Oracle cloud wins xAI Colossus expansion contract...'}],sectors:['ai'],regions:['americas']},
+
+  // ── AI LABS ───────────────────────────────────────────────────────────────
+  META: {name:'Meta AI',      flag:'🇺🇸',layer:'ai', color:'#ef4444',r:18,desc:'Llama open-source AI. 600k+ Nvidia GPUs. MTIA custom chip. Biggest open AI ecosystem.',
+    cascade:[
+      {id:'NVDA', w:9,  rel:'Supplier — 600k+ H100 GPUs'},
+      {id:'AMZN', w:6,  rel:'Partner — AWS Llama deployment'},
+      {id:'AVGO', w:7,  rel:'Supplier — MTIA custom chip design'},
+      {id:'TSM',  w:8,  rel:'Supplier — MTIA fabrication'},
+    ],
+    peers:['GOOGL','MSFT','AMZN'],
+    src:[{b:'WSJ EN',h:'Meta Llama 4 drives enterprise AI adoption...'}],sectors:['ai'],regions:['americas']},
+
+  // ── ENERGY ────────────────────────────────────────────────────────────────
+  VST:  {name:'Vistra Energy',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:15,desc:'Nuclear + gas. Biggest AI datacenter power play. TMI plant restart with Microsoft.',
+    cascade:[
+      {id:'CEG',  w:7, rel:'Peer — nuclear sector re-rating'},
+      {id:'NEE',  w:5, rel:'Peer — energy sector'},
+      {id:'MSFT', w:6, rel:'Customer — 20yr power purchase deal'},
+      {id:'GEV',  w:4, rel:'Supplier — turbine/grid equipment'},
+    ],
+    peers:['CEG','NEE','GEV'],
+    src:[{b:'FT EN',h:'Microsoft confirms TMI nuclear restart deal...'},{b:'CNBC EN',h:'Nuclear stocks surge on AI power demand...'}],sectors:['energy_s','ai'],regions:['americas']},
+
+  CEG:  {name:'Constellation',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:13,desc:'Largest US nuclear operator. Direct beneficiary of AI datacenter power demand.',
+    cascade:[
+      {id:'NEE',  w:5, rel:'Peer — energy sector'},
+      {id:'VST',  w:6, rel:'Peer — nuclear power'},
+      {id:'AMZN', w:5, rel:'Customer — AWS power contracts'},
+    ],
+    peers:['VST','NEE','GEV'],
+    src:[{b:'Reuters EN',h:'Constellation follows Vistra on datacenter nuclear...'}],sectors:['energy_s'],regions:['americas']},
+
+  NEE:  {name:'NextEra Energy',flag:'🇺🇸',layer:'ene',color:'#f472b6',r:14,desc:'Largest US renewable energy. Wind + solar + battery. AI datacenter contracts.',
+    cascade:[
+      {id:'CEG',  w:5, rel:'Peer — energy sector'},
+      {id:'VST',  w:5, rel:'Peer — power generation'},
+      {id:'GEV',  w:5, rel:'Supplier — wind turbines'},
+    ],
+    peers:['VST','CEG','GEV'],
+    src:[{b:'Bloomberg EN',h:'NextEra benefits from AI datacenter renewable contracts...'}],sectors:['energy_s'],regions:['americas']},
+
+  GEV:  {name:'GE Vernova',   flag:'🇺🇸',layer:'ene',color:'#f472b6',r:12,desc:'Gas turbines, wind, grid infrastructure. Direct beneficiary of datacenter power demand.',
+    cascade:[
+      {id:'VST',  w:5, rel:'Customer — turbine supply'},
+      {id:'NEE',  w:5, rel:'Customer — wind turbines'},
+    ],
+    peers:['VST','CEG','NEE'],
+    src:[{b:'WSJ EN',h:'GE Vernova turbine backlog surges on datacenter power demand...'}],sectors:['energy_s'],regions:['americas']},
+
+  // ── OIL & GAS ─────────────────────────────────────────────────────────────
+  XOM:  {name:'ExxonMobil',   flag:'🇺🇸',layer:'oil',color:'#eab308',r:17,desc:'Largest US oil major. Hormuz strait and geopolitical tension direct exposure.',
+    cascade:[
+      {id:'SHEL', w:6, rel:'Peer — global oil major'},
+      {id:'CVX',  w:6, rel:'Peer — US oil major'},
+      {id:'AMKBY',w:5, rel:'Customer — shipping routes'},
+    ],
+    peers:['SHEL','CVX','BP','TTE'],
+    src:[{b:'Reuters EN',h:'ExxonMobil benefits from Hormuz tension oil spike...'}],sectors:['oil'],regions:['americas','mena']},
+
+  SHEL: {name:'Shell',        flag:'🇬🇧',layer:'oil',color:'#eab308',r:15,desc:'Global oil and LNG major. Hormuz and Red Sea exposure. European energy security.',
+    cascade:[
+      {id:'XOM',  w:6, rel:'Peer — global oil major'},
+      {id:'AMKBY',w:5, rel:'Customer — LNG shipping routes'},
+      {id:'CVX',  w:5, rel:'Peer — oil major'},
+    ],
+    peers:['XOM','CVX','BP','TTE'],
+    src:[{b:'FT EN',h:'Shell LNG shipments at risk from Hormuz disruption...'}],sectors:['oil'],regions:['europe','mena']},
+
+  CVX:  {name:'Chevron',      flag:'🇺🇸',layer:'oil',color:'#eab308',r:14,desc:'Second largest US oil major. Gulf and Middle East exposure.',
+    cascade:[
+      {id:'XOM',  w:6, rel:'Peer — US oil major'},
+      {id:'SHEL', w:5, rel:'Peer — global oil major'},
+    ],
+    peers:['XOM','SHEL','BP'],
+    src:[{b:'Bloomberg EN',h:'Chevron benefits from OPEC production cut oil price rise...'}],sectors:['oil'],regions:['americas','mena']},
+
+  // ── SHIPPING ──────────────────────────────────────────────────────────────
+  AMKBY:{name:'Maersk',       flag:'🇩🇰',layer:'shp',color:'#60a5fa',r:14,desc:'World\'s largest container shipper. Taiwan Strait, Suez, Hormuz — all routes exposed.',
+    cascade:[
+      {id:'XOM',  w:4, rel:'Customer — fuel costs'},
+      {id:'SHEL', w:4, rel:'Customer — LNG fuel'},
+      {id:'TSM',  w:5, rel:'Indirect — Taiwan chip shipment routes'},
+    ],
+    peers:['ZIM','STNG','DAC'],
+    src:[{b:'Børsen DA→EN',h:'Maersk reroutes vessels amid Taiwan tensions...'},{b:'Reuters EN',h:'Maersk shipping rates surge on geopolitical risk...'}],sectors:['shipping'],regions:['europe','asia']},
+
+  // ── FINANCE ───────────────────────────────────────────────────────────────
+  JPM:  {name:'JPMorgan',     flag:'🇺🇸',layer:'fin',color:'#a78bfa',r:15,desc:'Largest US bank. Fed rate sensitive. Macro bellwether.',
+    cascade:[
+      {id:'GS',   w:6, rel:'Peer — investment banking'},
+      {id:'BAC',  w:5, rel:'Peer — commercial banking'},
+      {id:'XOM',  w:3, rel:'Client — energy financing'},
+    ],
+    peers:['GS','BAC','MS','C'],
+    src:[{b:'Bloomberg EN',h:'JPMorgan Q3 earnings impacted by credit costs...'}],sectors:['finance'],regions:['americas']},
+
+  GS:   {name:'Goldman Sachs', flag:'🇺🇸',layer:'fin',color:'#a78bfa',r:13,desc:'Investment bank. AI and tech deal flow. Macro and rates exposure.',
+    cascade:[
+      {id:'JPM',  w:6, rel:'Peer — investment banking'},
+      {id:'NVDA', w:4, rel:'Client — tech IPOs and financing'},
+    ],
+    peers:['JPM','MS','BAC','C'],
+    src:[{b:'Bloomberg EN',h:'Goldman Sachs AI investment banking fees surge...'}],sectors:['finance'],regions:['americas']},
 };
+
 
 // Static events as fallback / seed data
 const STATIC_EVENTS = [
@@ -873,15 +1139,52 @@ function hideGraphTooltip() {
 }
 
 // ── D3 FORCE GRAPH ────────────────────────────────────────────────────────────
-// All supply chain links
+// Build supply chain links from STOCKS cascade data
 const ALL_LINKS = [];
 Object.entries(STOCKS).forEach(([sid, sd]) => {
   (sd.cascade||[]).forEach(c => {
-    if(STOCKS[c.id]) ALL_LINKS.push({s:sid, t:c.id, w:c.w});
+    if(STOCKS[c.id]) ALL_LINKS.push({
+      s:sid, t:c.id, w:c.w,
+      rel: c.rel || `${sd.name} → ${STOCKS[c.id]?.name}`
+    });
   });
 });
 
-let d3svg, d3zoom, simulation;
+// Also add peer links (bidirectional, weight 3)
+Object.entries(STOCKS).forEach(([sid, sd]) => {
+  (sd.peers||[]).forEach(pid => {
+    if(STOCKS[pid] && !ALL_LINKS.some(l=>l.s===sid&&l.t===pid) && !ALL_LINKS.some(l=>l.s===pid&&l.t===sid)) {
+      ALL_LINKS.push({s:sid, t:pid, w:3, rel:`Peer — same industry`});
+    }
+  });
+});
+
+// Fetch Finnhub peers to enrich graph relationships
+async function fetchPeers() {
+  const tickers = ['NVDA','TSM','ASML','AMD','AAPL','MSFT','AMZN','META','GOOGL','XOM','JPM','VST'];
+  for(const ticker of tickers) {
+    try {
+      const res = await fetch(`https://finnhub.io/api/v1/stock/peers?symbol=${ticker}&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(4000)});
+      const peers = await res.json();
+      if(Array.isArray(peers)) {
+        peers.filter(p => p !== ticker && STOCKS[p]).forEach(pid => {
+          // Add peer link if not already exists
+          if(!ALL_LINKS.some(l=>(l.s===ticker&&l.t===pid)||(l.s===pid&&l.t===ticker))) {
+            ALL_LINKS.push({s:ticker, t:pid, w:3, rel:`Peer — Finnhub classification`});
+          }
+          // Add to STOCKS peers list
+          if(STOCKS[ticker] && !STOCKS[ticker].peers?.includes(pid)) {
+            if(!STOCKS[ticker].peers) STOCKS[ticker].peers = [];
+            STOCKS[ticker].peers.push(pid);
+          }
+        });
+      }
+    } catch(e) {}
+    await new Promise(r=>setTimeout(r,150));
+  }
+}
+
+
 let visibleNodes = new Set();
 let lockedNode = null;
 
@@ -962,7 +1265,8 @@ function redrawGraph() {
     .on('mouseover', function(e, d) {
       const ss = STOCKS[d.s], st = STOCKS[d.t];
       if(!ss||!st) return;
-      showGraphTooltip(e, `${ss.name} → ${st.name}<br><span style="opacity:.7">${st.layer} · dependency ${d.w}/10</span>`);
+      const rel = d.rel || `${ss.name} → ${st.name}`;
+      showGraphTooltip(e, `<b>${ss.flag} ${ss.name} → ${st.flag} ${st.name}</b><br><span style="opacity:.7">${rel}</span><br><span style="opacity:.5">dependency ${d.w}/10</span>`);
       d3.select(this).attr('stroke-opacity', 0.7).attr('stroke-width', d.w*0.5+1);
     })
     .on('mouseout', function(e, d) {
@@ -1309,6 +1613,9 @@ async function init() {
   try {
     // Trigger cron to populate Supabase (fire and forget)
     fetch('/api/cron').catch(()=>{});
+
+    // Fetch peers to enrich graph (fire and forget)
+    fetchPeers().catch(()=>{});
 
     // Stagger requests
     fetchAllNews();
