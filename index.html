@@ -78,8 +78,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 .resizer{width:4px;background:transparent;cursor:col-resize;flex-shrink:0;transition:background .15s;}
 .resizer:hover,.resizer.drag{background:var(--acc);}
 .panel{display:flex;flex-direction:column;overflow:hidden;min-width:160px;}
-.ph{height:34px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0;}
-.ph-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);}
+.ph{height:34px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0;gap:8px;}
+.ph-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
 .ph-acts{display:flex;gap:3px;align-items:center;}
 .pa{font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border:1px solid var(--b1);border-radius:3px;cursor:pointer;color:var(--mu);background:transparent;transition:all .12s;}
 .pa:hover{border-color:var(--b2);color:var(--tx);}
@@ -149,7 +149,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 #graph-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);}
 #graph-svg{width:100%;height:100%;cursor:grab;}
 #graph-svg:active{cursor:grabbing;}
-.graph-controls{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:4px 8px;z-index:10;}
+.graph-tooltip{position:absolute;background:var(--s1);border:1px solid var(--b2);border-radius:5px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);pointer-events:none;z-index:50;display:none;line-height:1.6;max-width:200px;}
+.graph-tooltip.visible{display:block;}transform:translateX(-50%);display:flex;align-items:center;gap:5px;background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:4px 8px;z-index:10;}
 .gc-btn{width:24px;height:24px;border:1px solid var(--b1);border-radius:4px;background:transparent;color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
 .gc-btn:hover{border-color:var(--b2);color:var(--tx);}
 .gc-btn:disabled{opacity:.3;cursor:not-allowed;}
@@ -331,6 +332,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
         <div class="gc-sep"></div>
         <span class="gc-info" id="gc-info">—</span>
       </div>
+      <div class="graph-tooltip" id="graph-tooltip"></div>
     </div>
   </div>
   <div class="resizer" id="r2"></div>
@@ -789,13 +791,86 @@ function selectStock(id) {
   document.getElementById('ns-name').textContent=d.name;
   document.getElementById('news-rows').innerHTML=newsHtml;
   document.getElementById('news-sub').style.display=newsHtml?'block':'none';
-  // Highlight node in graph if visible
+
+  // ── SYNC P1 FEED — filter by this stock ──────────────────────────────────────
+  syncFeedToStock(id);
+
+  // ── SYNC FILTERS — activate relevant sector ──────────────────────────────────
+  if(d.sectors && d.sectors.length) {
+    // Reset sector filters and activate the stock's sector
+    document.querySelectorAll('[data-f="sector"]').forEach(b=>b.classList.remove('on'));
+    activeSectors = new Set(['all']);
+    // Try to match sector
+    const sectorMap = {
+      'lit':'semi','fab':'semi','chp':'semi','mat':'semi',
+      'cld':'ai','ai':'ai',
+      'ene':'energy_s','oil':'oil',
+      'shp':'shipping','fin':'finance',
+    };
+    const sector = sectorMap[d.layer];
+    if(sector) {
+      activeSectors = new Set([sector]);
+      document.querySelector(`[data-f="sector"][data-v="${sector}"]`)?.classList.add('on');
+      document.querySelector('[data-f="sector"][data-v="all"]')?.classList.remove('on');
+    } else {
+      document.querySelector('[data-f="sector"][data-v="all"]')?.classList.add('on');
+    }
+  }
+
+  // Highlight node in graph
   if(visibleNodes && visibleNodes.has(id)) {
     d3.select('#g-nodes').selectAll('g.gnode')
       .select('.main')
       .attr('fill', d => d.id===id ? STOCKS[d.id]?.color||'#fff' : `${STOCKS[d.id]?.color||'#fff'}22`)
       .attr('stroke-width', d => d.id===id ? 2.5 : 1.8);
   }
+}
+
+// Filter P1 feed to show articles related to a stock
+function syncFeedToStock(stockId) {
+  const d = STOCKS[stockId]; if(!d) return;
+  const name = d.name.toLowerCase();
+  const ticker = stockId.toLowerCase();
+
+  // Filter feed items — highlight matching ones, dim others
+  document.querySelectorAll('.ni').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    const matches = text.includes(name) || text.includes(ticker) ||
+      // Check if any graphNode chips match
+      (d.cascade||[]).some(c => text.includes((STOCKS[c.id]?.name||'').toLowerCase()));
+    el.style.opacity = matches ? '1' : '0.3';
+    if(matches) el.style.borderLeftColor = d.color;
+    else el.style.borderLeftColor = '';
+  });
+
+  // Show a reset button in P1 header
+  document.getElementById('p1-title').innerHTML =
+    `Live signals <span style="font-size:8px;color:var(--acc);cursor:pointer;margin-left:6px;font-family:'DM Mono',monospace" onclick="resetFeedFilter()">✕ ${d.name}</span>`;
+}
+
+function resetFeedFilter() {
+  document.querySelectorAll('.ni').forEach(el => {
+    el.style.opacity = '1';
+    el.style.borderLeftColor = '';
+  });
+  document.getElementById('p1-title').textContent = 'Live signals';
+  // Reset sector filter
+  activeSectors = new Set(['all']);
+  document.querySelectorAll('[data-f="sector"]').forEach(b=>b.classList.remove('on'));
+  document.querySelector('[data-f="sector"][data-v="all"]')?.classList.add('on');
+}
+
+function showGraphTooltip(e, html) {
+  const tt = document.getElementById('graph-tooltip');
+  const wrap = document.getElementById('graph-wrap');
+  const rect = wrap.getBoundingClientRect();
+  tt.innerHTML = html;
+  tt.classList.add('visible');
+  tt.style.left = (e.clientX - rect.left + 12) + 'px';
+  tt.style.top = (e.clientY - rect.top - 10) + 'px';
+}
+function hideGraphTooltip() {
+  document.getElementById('graph-tooltip')?.classList.remove('visible');
 }
 
 // ── D3 FORCE GRAPH ────────────────────────────────────────────────────────────
@@ -883,7 +958,18 @@ function redrawGraph() {
     .join('line')
     .attr('stroke', d => STOCKS[d.s]?.color || '#fff')
     .attr('stroke-width', d => 0.3 + d.w*0.25)
-    .attr('stroke-opacity', d => 0.05 + d.w*0.06);
+    .attr('stroke-opacity', d => 0.05 + d.w*0.06)
+    .style('cursor','pointer')
+    .on('mouseover', function(e, d) {
+      const ss = STOCKS[d.s], st = STOCKS[d.t];
+      if(!ss||!st) return;
+      showGraphTooltip(e, `${ss.name} → ${st.name}<br><span style="opacity:.7">${st.layer} · dependency ${d.w}/10</span>`);
+      d3.select(this).attr('stroke-opacity', 0.7).attr('stroke-width', d.w*0.5+1);
+    })
+    .on('mouseout', function(e, d) {
+      hideGraphTooltip();
+      d3.select(this).attr('stroke-opacity', 0.05 + d.w*0.06).attr('stroke-width', 0.3 + d.w*0.25);
+    });
 
   // Draw nodes — rendered after links so they appear on top
   const nodeSel = d3.select('#g-nodes')
@@ -1089,10 +1175,20 @@ function setGraphMode(mode){
 // ── SPLIT ─────────────────────────────────────────────────────────────────────
 function toggleSplit(){
   splitActive=!splitActive;
-  document.getElementById('split-btn').classList.toggle('on',splitActive);
-  document.getElementById('pred-col').classList.toggle('active',splitActive);
-  document.getElementById('news-col').classList.toggle('split',splitActive);
-  document.getElementById('v-resizer').classList.toggle('active',splitActive);
+  const btn=document.getElementById('split-btn');
+  const predCol=document.getElementById('pred-col');
+  const newsCol=document.getElementById('news-col');
+  const vr=document.getElementById('v-resizer');
+  btn.classList.toggle('on',splitActive);
+  predCol.classList.toggle('active',splitActive);
+  newsCol.classList.toggle('split',splitActive);
+  vr.classList.toggle('active',splitActive);
+  // Reset pred-col height when closing
+  if(!splitActive) {
+    predCol.style.height='';
+    newsCol.style.flex='';
+    newsCol.style.height='';
+  }
   if(splitActive) applyFilters();
 }
 
