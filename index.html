@@ -885,7 +885,7 @@ function redrawGraph() {
     .attr('stroke-width', d => 0.3 + d.w*0.25)
     .attr('stroke-opacity', d => 0.05 + d.w*0.06);
 
-  // Draw nodes
+  // Draw nodes — rendered after links so they appear on top
   const nodeSel = d3.select('#g-nodes')
     .selectAll('g.gnode')
     .data(nodes, d => d.id)
@@ -906,38 +906,45 @@ function redrawGraph() {
         .attr('stroke-width', 1.8)
         .attr('filter', 'url(#glow)');
 
-      // Flag
+      // Flag — above circle
       g.append('text').attr('class','flag')
         .attr('text-anchor','middle')
-        .attr('y', d => -d.r-7)
-        .attr('font-size', 11)
+        .attr('y', d => -d.r-6)
+        .attr('font-size', 12)
         .text(d => d.flag);
 
-      // Name
+      // Name background pill — below circle
+      g.append('rect').attr('class','label-bg')
+        .attr('rx', 3).attr('ry', 3)
+        .attr('fill', d => `${d.color}cc`)
+        .attr('height', 13);
+
+      // Name text — below circle
       g.append('text').attr('class','label')
         .attr('text-anchor','middle')
-        .attr('y', 3)
-        .attr('font-family','DM Mono, monospace')
-        .attr('font-size', d => d.id===lockedNode ? 9.5 : 8)
-        .attr('fill', d => d.id===lockedNode ? 'white' : d.color)
-        .attr('font-weight', d => d.id===lockedNode ? '600' : '400')
-        .text(d => d.name);
-
-      // Price change
-      g.append('text').attr('class','chg')
-        .attr('text-anchor','middle')
-        .attr('y', d => d.r+13)
+        .attr('y', d => d.r+20)
         .attr('font-family','DM Mono, monospace')
         .attr('font-size', 8.5)
-        .attr('fill', d => d.chg===null?'rgba(180,180,255,0.4)':d.chg>=0?'#22c55e':'#ef4444')
+        .attr('font-weight', '500')
+        .attr('fill', 'white')
+        .text(d => d.name);
+
+      // Price change — below name
+      g.append('text').attr('class','chg')
+        .attr('text-anchor','middle')
+        .attr('y', d => d.r+32)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', 8)
+        .attr('fill', d => d.chg===null?'rgba(180,180,255,0.35)':d.chg>=0?'#22c55e':'#ef4444')
         .text(d => d.chg!==null ? `${d.chg>=0?'+':''}${d.chg.toFixed(1)}%` : '');
 
-      // Expand indicator — shows if node has hidden neighbors
+      // Expand indicator — top right of circle
       g.append('text').attr('class','expand-hint')
         .attr('text-anchor','middle')
         .attr('y', d => -d.r-18)
         .attr('font-size', 8)
-        .attr('fill', 'rgba(0,217,255,0.6)')
+        .attr('fill', 'rgba(0,217,255,0.7)')
+        .attr('font-family','DM Mono, monospace')
         .text(d => gNeighbors(d.id).length > 0 ? `+${gNeighbors(d.id).length}` : '');
 
       return g;
@@ -976,6 +983,16 @@ function redrawGraph() {
       .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
       .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
     nodeSel.attr('transform', d => `translate(${d.x||0},${d.y||0})`);
+    // Position label background behind text
+    nodeSel.each(function(d) {
+      const textEl = d3.select(this).select('.label');
+      const bgEl = d3.select(this).select('.label-bg');
+      try {
+        const bbox = textEl.node().getBBox();
+        bgEl.attr('x', bbox.x - 3).attr('y', bbox.y - 1)
+            .attr('width', bbox.width + 6).attr('height', bbox.height + 2);
+      } catch(e) {}
+    });
   });
 
   updateLegend(nodeIds);
