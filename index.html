@@ -734,6 +734,8 @@ function renderPreds(items) {
 
 // ── SELECT NEWS ───────────────────────────────────────────────────────────────
 function selectNews(id) {
+  // Always reset feed filter first
+  resetFeedFilter();
   selNewsId=id;
   document.querySelectorAll('.ni').forEach(el=>el.classList.remove('sel'));
   const el=document.getElementById('ni-'+id);
@@ -853,11 +855,8 @@ function resetFeedFilter() {
     el.style.opacity = '1';
     el.style.borderLeftColor = '';
   });
-  document.getElementById('p1-title').textContent = 'Live signals';
-  // Reset sector filter
-  activeSectors = new Set(['all']);
-  document.querySelectorAll('[data-f="sector"]').forEach(b=>b.classList.remove('on'));
-  document.querySelector('[data-f="sector"][data-v="all"]')?.classList.add('on');
+  const titleEl = document.getElementById('p1-title');
+  if(titleEl) titleEl.textContent = 'Live signals';
 }
 
 function showGraphTooltip(e, html) {
