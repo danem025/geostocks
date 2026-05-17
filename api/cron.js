@@ -294,13 +294,8 @@ async function cleanOldNews() {
 }
 
 module.exports = async function handler(req, res) {
-  // Verify cron secret to prevent abuse
-  const authHeader = req.headers.authorization;
-  if(authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.CRON_SECRET) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-
+  res.setHeader('Access-Control-Allow-Origin','*');
+  if(req.method==='OPTIONS'){res.status(200).end();return;}
   try {
     const [rssNews, gdeltNews, finnhubNews] = await Promise.all([
       fetchRSS(),
