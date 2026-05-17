@@ -264,14 +264,15 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
     <span class="filter-label">Sector</span>
     <div class="chips-row">
       <button class="chip on" data-f="sector" data-v="all" onclick="toggleChip(this)">All</button>
-      <button class="chip" data-f="sector" data-v="semi" onclick="toggleChip(this)">🔬 Semi</button>
-      <button class="chip" data-f="sector" data-v="energy_s" onclick="toggleChip(this)">⚡ Energy</button>
-      <button class="chip" data-f="sector" data-v="ai" onclick="toggleChip(this)">🤖 AI</button>
-      <button class="chip" data-f="sector" data-v="oil" onclick="toggleChip(this)">🛢️ Oil & Gas</button>
-      <button class="chip" data-f="sector" data-v="shipping" onclick="toggleChip(this)">🚢 Shipping</button>
-      <button class="chip" data-f="sector" data-v="finance" onclick="toggleChip(this)">💰 Finance</button>
-      <button class="chip" data-f="sector" data-v="defense" onclick="toggleChip(this)">🛡️ Defense</button>
-      <button class="chip" data-f="sector" data-v="metals" onclick="toggleChip(this)">🪨 Metals</button>
+      <button class="chip" data-f="sector" data-v="semi"     data-color="#118ab2" onclick="toggleChip(this)">🔬 Semi</button>
+      <button class="chip" data-f="sector" data-v="energy_s" data-color="#f472b6" onclick="toggleChip(this)">⚛️ Nuclear/Power</button>
+      <button class="chip" data-f="sector" data-v="ai"       data-color="#ef4444" onclick="toggleChip(this)">🤖 AI & Cloud</button>
+      <button class="chip" data-f="sector" data-v="oil"      data-color="#eab308" onclick="toggleChip(this)">🛢️ Oil & Gas</button>
+      <button class="chip" data-f="sector" data-v="shipping" data-color="#60a5fa" onclick="toggleChip(this)">🚢 Shipping</button>
+      <button class="chip" data-f="sector" data-v="finance"  data-color="#a78bfa" onclick="toggleChip(this)">💰 Finance</button>
+      <button class="chip" data-f="sector" data-v="defense"  data-color="#8b5cf6" onclick="toggleChip(this)">🛡️ Defense</button>
+      <button class="chip" data-f="sector" data-v="metals"   data-color="#ff6b35" onclick="toggleChip(this)">🪨 Metals</button>
+      <button class="chip" data-f="sector" data-v="tech"     data-color="#00d9ff" onclick="toggleChip(this)">💻 Tech</button>
     </div>
     <button class="split-btn" id="split-btn" onclick="toggleSplit()"><div class="tog"></div>Prediction markets</button>
   </div>
@@ -364,31 +365,114 @@ const FINNHUB_KEY = 'd847u89r01qutij88epgd847u89r01qutij88eq0';
 
 // ── STATIC DATA ───────────────────────────────────────────────────────────────
 const TC = {
-  geopolitical:{bg:'rgba(239,68,68,.1)',bd:'rgba(239,68,68,.35)',tx:'#ef4444'},
-  economic:    {bg:'rgba(249,115,22,.1)',bd:'rgba(249,115,22,.35)',tx:'#f97316'},
-  energy:      {bg:'rgba(34,197,94,.1)', bd:'rgba(34,197,94,.35)', tx:'#22c55e'},
-  tech:        {bg:'rgba(0,217,255,.1)', bd:'rgba(0,217,255,.35)', tx:'#00d9ff'},
-  trade:       {bg:'rgba(234,179,8,.1)', bd:'rgba(234,179,8,.35)', tx:'#eab308'},
-  monetary:    {bg:'rgba(59,130,246,.1)',bd:'rgba(59,130,246,.35)',tx:'#3b82f6'},
-  military:    {bg:'rgba(139,92,246,.1)',bd:'rgba(139,92,246,.35)',tx:'#8b5cf6'},
+  geopolitical:{bg:'rgba(239,68,68,.1)',  bd:'rgba(239,68,68,.35)',  tx:'#ef4444'},  // red
+  economic:    {bg:'rgba(249,115,22,.1)', bd:'rgba(249,115,22,.35)', tx:'#f97316'},  // orange
+  energy:      {bg:'rgba(34,197,94,.1)',  bd:'rgba(34,197,94,.35)',  tx:'#22c55e'},  // green (event type)
+  tech:        {bg:'rgba(0,217,255,.1)',  bd:'rgba(0,217,255,.35)',  tx:'#00d9ff'},  // cyan
+  trade:       {bg:'rgba(234,179,8,.1)',  bd:'rgba(234,179,8,.35)',  tx:'#eab308'},  // yellow
+  monetary:    {bg:'rgba(59,130,246,.1)', bd:'rgba(59,130,246,.35)', tx:'#3b82f6'},  // blue
+  military:    {bg:'rgba(139,92,246,.1)', bd:'rgba(139,92,246,.35)', tx:'#8b5cf6'},  // purple
+  political:   {bg:'rgba(244,114,182,.1)',bd:'rgba(244,114,182,.35)',tx:'#f472b6'},  // pink
 };
 
 const LAYERS = [
-  {id:'mat',name:'Materials',   color:'#ff6b35'},
-  {id:'lit',name:'Litho Equip.',color:'#ffd166'},
-  {id:'fab',name:'Foundry',     color:'#06d6a0'},
-  {id:'chp',name:'Chip Design', color:'#118ab2'},
-  {id:'cld',name:'Cloud',       color:'#8b5cf6'},
-  {id:'ai', name:'AI Labs',     color:'#ef4444'},
-  {id:'ene',name:'Energy',      color:'#f472b6'},
-  {id:'oil',name:'Oil & Gas',   color:'#eab308'},
-  {id:'shp',name:'Shipping',    color:'#60a5fa'},
-  {id:'fin',name:'Finance',     color:'#a78bfa'},
+  {id:'mat',name:'Materials',    color:'#ff6b35', sector:'metals'},
+  {id:'lit',name:'Litho Equip.', color:'#118ab2', sector:'semi'},
+  {id:'fab',name:'Foundry',      color:'#118ab2', sector:'semi'},
+  {id:'chp',name:'Chip Design',  color:'#118ab2', sector:'semi'},
+  {id:'cld',name:'Cloud',        color:'#ef4444', sector:'ai'},
+  {id:'ai', name:'AI Labs',      color:'#ef4444', sector:'ai'},
+  {id:'ene',name:'Nuclear/Power',color:'#f472b6', sector:'energy_s'},
+  {id:'oil',name:'Oil & Gas',    color:'#eab308', sector:'oil'},
+  {id:'shp',name:'Shipping',     color:'#60a5fa', sector:'shipping'},
+  {id:'fin',name:'Finance',      color:'#a78bfa', sector:'finance'},
 ];
+
+// Sector color palette — for auto-assigning new sectors
+const COLOR_PALETTE = [
+  '#118ab2','#ef4444','#f472b6','#eab308','#60a5fa',
+  '#a78bfa','#8b5cf6','#ff6b35','#00d9ff','#22c55e',
+  '#fb923c','#34d399','#f59e0b','#e879f9','#38bdf8',
+  '#c084fc','#4ade80','#facc15','#f87171','#67e8f9',
+];
+
+// Starts with known colors, grows dynamically
+let SECTOR_COLOR = {
+  semi:     '#118ab2',
+  ai:       '#ef4444',
+  energy_s: '#f472b6',
+  oil:      '#eab308',
+  shipping: '#60a5fa',
+  finance:  '#a78bfa',
+  defense:  '#8b5cf6',
+  metals:   '#ff6b35',
+  tech:     '#00d9ff',
+  pharma:   '#34d399',
+  political:'#f97316',
+  trade:    '#fb923c',
+};
+
+// Load colors from Supabase and merge
+async function loadSectorColors() {
+  const SUPABASE_URL = 'https://npdrszmfymehaahxbcjk.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHJzem1meW1laGFhaHhiY2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTUyMTMsImV4cCI6MjA5NDU3MTIxM30.Y-EnYt9sHzFCiTrBHbG5BFyszWzRbHzRoxO1P1_5s-c';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/sector_colors?select=sector,color`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    const rows = await res.json();
+    if(Array.isArray(rows)) {
+      rows.forEach(r => { getSectorColor(r.sector) = r.color; });
+    }
+  } catch(e) { /* use defaults */ }
+}
+
+// Get color for any sector — auto-assign if unknown
+async function sectorColor(sector) {
+  if(!sector) return '#4a5a78';
+  if(getSectorColor(sector)) return getSectorColor(sector);
+
+  // New sector — assign from palette based on hash
+  let hash = 0;
+  for(const c of sector) hash = (hash * 31 + c.charCodeAt(0)) % COLOR_PALETTE.length;
+  const color = COLOR_PALETTE[hash];
+  getSectorColor(sector) = color;
+
+  // Save to Supabase asynchronously
+  const SUPABASE_URL = 'https://npdrszmfymehaahxbcjk.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHJzem1meW1laGFhaHhiY2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTUyMTMsImV4cCI6MjA5NDU3MTIxM30.Y-EnYt9sHzFCiTrBHbG5BFyszWzRbHzRoxO1P1_5s-c';
+  fetch(`${SUPABASE_URL}/rest/v1/sector_colors`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=ignore-duplicates',
+    },
+    body: JSON.stringify({sector, color}),
+  }).catch(()=>{});
+
+  return color;
+}
+
+// Sync version for rendering (uses cached value)
+function getSectorColor(sector) {
+  if(!sector) return '#4a5a78';
+  if(getSectorColor(sector)) return getSectorColor(sector);
+  // Auto-assign from palette
+  let hash = 0;
+  for(const c of sector) hash = (hash * 31 + c.charCodeAt(0)) % COLOR_PALETTE.length;
+  const color = COLOR_PALETTE[hash];
+  getSectorColor(sector) = color;
+  // Save async
+  sectorColor(sector);
+  return color;
+}
 
 const STOCKS = {
   // ── LITHO / EQUIPMENT ─────────────────────────────────────────────────────
-  ASML: {name:'ASML',         flag:'🇳🇱',layer:'lit',color:'#ffd166',r:18,desc:'Only EUV lithography machine maker. Global foundry chokepoint — no ASML, no advanced chips.',
+  ASML: {name:'ASML',         flag:'🇳🇱',layer:'lit',color:'#118ab2',r:18,desc:'Only EUV lithography machine maker. Global foundry chokepoint — no ASML, no advanced chips.',
     cascade:[
       {id:'TSM',  w:10, rel:'Customer — 100% of TSMC EUV machines'},
       {id:'SSNLF',w:9,  rel:'Customer — Samsung Foundry EUV'},
@@ -400,7 +484,7 @@ const STOCKS = {
     peers:['KLAC','AMAT','LRCX','TOELY'],
     src:[{b:'Reuters EN',h:'EU mulls new EUV export curbs targeting China fabs...'},{b:'NRC NL→EN',h:'ASML onder druk door exportregels Brussel...'}],sectors:['semi'],regions:['europe']},
 
-  KLAC: {name:'KLA Corp',     flag:'🇺🇸',layer:'lit',color:'#ffd166',r:13,desc:'Process control and wafer inspection. Every chip fab needs KLA equipment.',
+  KLAC: {name:'KLA Corp',     flag:'🇺🇸',layer:'lit',color:'#118ab2',r:13,desc:'Process control and wafer inspection. Every chip fab needs KLA equipment.',
     cascade:[
       {id:'TSM',  w:7, rel:'Customer — KLA inspection at TSMC fabs'},
       {id:'SSNLF',w:6, rel:'Customer — KLA inspection at Samsung'},
@@ -409,7 +493,7 @@ const STOCKS = {
     peers:['ASML','AMAT','LRCX'],
     src:[{b:'WSJ EN',h:'Semi equipment stocks fall on EU restriction fears...'}],sectors:['semi'],regions:['americas']},
 
-  AMAT: {name:'Applied Matls',flag:'🇺🇸',layer:'lit',color:'#ffd166',r:14,desc:'Deposition and etch equipment. Used in every chip fab worldwide.',
+  AMAT: {name:'Applied Matls',flag:'🇺🇸',layer:'lit',color:'#118ab2',r:14,desc:'Deposition and etch equipment. Used in every chip fab worldwide.',
     cascade:[
       {id:'TSM',  w:7, rel:'Customer — deposition equipment'},
       {id:'SSNLF',w:6, rel:'Customer — deposition equipment'},
@@ -418,7 +502,7 @@ const STOCKS = {
     peers:['ASML','KLAC','LRCX'],
     src:[{b:'Bloomberg EN',h:'Applied Materials falls on semiconductor concerns...'}],sectors:['semi'],regions:['americas']},
 
-  LRCX: {name:'Lam Research',  flag:'🇺🇸',layer:'lit',color:'#ffd166',r:13,desc:'Etch and deposition equipment. Critical for memory and logic chips.',
+  LRCX: {name:'Lam Research',  flag:'🇺🇸',layer:'lit',color:'#118ab2',r:13,desc:'Etch and deposition equipment. Critical for memory and logic chips.',
     cascade:[
       {id:'TSM',  w:6, rel:'Customer — etch equipment'},
       {id:'SSNLF',w:6, rel:'Customer — memory etch equipment'},
@@ -428,7 +512,7 @@ const STOCKS = {
     src:[{b:'Reuters EN',h:'Lam Research benefits from memory chip capex cycle...'}],sectors:['semi'],regions:['americas']},
 
   // ── FOUNDRIES ─────────────────────────────────────────────────────────────
-  TSM:  {name:'TSMC',         flag:'🇹🇼',layer:'fab',color:'#06d6a0',r:22,desc:'90%+ of world\'s advanced chips. Fabless model — designs from everywhere, made in Taiwan.',
+  TSM:  {name:'TSMC',         flag:'🇹🇼',layer:'fab',color:'#118ab2',r:22,desc:'90%+ of world\'s advanced chips. Fabless model — designs from everywhere, made in Taiwan.',
     cascade:[
       {id:'NVDA', w:10, rel:'Customer — 100% of Nvidia GPUs'},
       {id:'AMD',  w:9,  rel:'Customer — 90% of AMD chips'},
@@ -440,7 +524,7 @@ const STOCKS = {
     peers:['SSNLF','INTC','GFS'],
     src:[{b:'Nikkei JA→EN',h:'Taiwan Strait tensions rise...'},{b:'Reuters EN',h:'TSMC supply chain risk flagged...'}],sectors:['semi'],regions:['asia']},
 
-  SSNLF:{name:'Samsung F.',   flag:'🇰🇷',layer:'fab',color:'#06d6a0',r:17,desc:'Second largest foundry. Competing with TSMC at 3nm GAA. Also makes memory.',
+  SSNLF:{name:'Samsung F.',   flag:'🇰🇷',layer:'fab',color:'#118ab2',r:17,desc:'Second largest foundry. Competing with TSMC at 3nm GAA. Also makes memory.',
     cascade:[
       {id:'QCOM', w:6, rel:'Customer — some Snapdragon chips'},
       {id:'NVDA', w:4, rel:'Potential customer — diversification'},
@@ -449,7 +533,7 @@ const STOCKS = {
     peers:['TSM','INTC','MU'],
     src:[{b:'Korea JoongAng KO→EN',h:'Samsung foundry faces EU EUV restriction cascade...'}],sectors:['semi'],regions:['asia']},
 
-  INTC: {name:'Intel Foundry', flag:'🇺🇸',layer:'fab',color:'#06d6a0',r:13,desc:'Intel 18A process node — US domestic chip manufacturing push.',
+  INTC: {name:'Intel Foundry', flag:'🇺🇸',layer:'fab',color:'#118ab2',r:13,desc:'Intel 18A process node — US domestic chip manufacturing push.',
     cascade:[
       {id:'NVDA', w:3, rel:'Potential customer — US manufacturing'},
       {id:'QCOM', w:3, rel:'Potential customer — US manufacturing'},
@@ -919,14 +1003,25 @@ let histIdx = -1;
 function toggleChip(btn) {
   const f=btn.dataset.f, v=btn.dataset.v;
   const set=f==='region'?activeRegions:f==='type'?activeTypes:activeSectors;
+  const color = btn.dataset.color;
   if(v==='all'){
     if(set.has('all')){set.clear();btn.classList.remove('on');}
-    else{set.clear();set.add('all');document.querySelectorAll(`[data-f="${f}"]`).forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+    else{set.clear();set.add('all');document.querySelectorAll(`[data-f="${f}"]`).forEach(b=>{b.classList.remove('on');b.style.borderColor='';b.style.color='';b.style.background='';});btn.classList.add('on');}
   } else {
     set.delete('all');
     document.querySelector(`[data-f="${f}"][data-v="all"]`)?.classList.remove('on');
-    if(set.has(v)){set.delete(v);btn.classList.remove('on');}
-    else{set.add(v);btn.classList.add('on');}
+    if(set.has(v)){
+      set.delete(v);btn.classList.remove('on');
+      btn.style.borderColor='';btn.style.color='';btn.style.background='';
+    } else {
+      set.add(v);btn.classList.add('on');
+      // Apply sector color
+      if(color && f==='sector') {
+        btn.style.borderColor=color;
+        btn.style.color=color;
+        btn.style.background=color+'12';
+      }
+    }
     if(set.size===0){set.add('all');document.querySelector(`[data-f="${f}"][data-v="all"]`)?.classList.add('on');}
   }
   applyFilters();
@@ -965,8 +1060,10 @@ function renderFeed(items) {
     const stkHtml=n.graphNodes.slice(0,5).map(id=>{
       const sd=STOCKS[id];if(!sd)return'';
       const p=livePrices[id];
-      const chgTxt=p?`${p.change>=0?'+':''}${p.change.toFixed(1)}%`:(sd.chg||'');
-      const col=p?(p.change>=0?'#22c55e':'#ef4444'):sd.color;
+      const chgTxt=p?`${p.change>=0?'+':''}${p.change.toFixed(1)}%`:'';
+      // Use sector color for consistency
+      const secColor = getSectorColor(sd.sectors?.[0)] || sd.color;
+      const col=p?(p.change>=0?'#22c55e':'#ef4444'):secColor;
       return `<span class="ni-stk" data-ticker="${id}" style="color:${col};border-color:${col}35;background:${col}0c" onclick="event.stopPropagation();selectStock('${id}')"><span class="stk-name">${sd.name}</span> <span class="stk-chg" style="opacity:.75">${chgTxt}</span></span>`;
     }).join('')+(n.graphNodes.length>5?`<span class="ni-stk" style="color:var(--mu);border-color:var(--b1)">+${n.graphNodes.length-5}</span>`:'');
     const liveBadge=n.isLive?`<span class="live-badge">LIVE</span>`:'';
@@ -1237,7 +1334,9 @@ function redrawGraph() {
   const nodes = nodeIds.map(id => {
     const d = STOCKS[id];
     const p = livePrices[id];
-    return { id, name:d.name, flag:d.flag, color:d.color, r:d.r||12, layer:d.layer,
+    // Use sector color for consistency
+    const secColor = getSectorColor(d.sectors?.[0)] || d.color;
+    return { id, name:d.name, flag:d.flag, color:secColor, r:d.r||12, layer:d.layer,
       chg: p ? p.change : null, price: p ? p.price : null };
   });
 
@@ -1612,6 +1711,9 @@ async function init() {
   // Fetch all APIs
   setStatus('loading','Connecting…');
   try {
+    // Load sector colors from Supabase
+    loadSectorColors();
+
     // Trigger cron to populate Supabase (fire and forget)
     fetch('/api/cron').catch(()=>{});
 
