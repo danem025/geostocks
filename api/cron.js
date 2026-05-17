@@ -130,14 +130,11 @@ const RSS_FEEDS = [
 ];
 
 const GDELT_QUERIES = [
-  'semiconductor chip TSMC nvidia ASML AMD export control',
-  'geopolitical military conflict sanctions strait taiwan hormuz',
-  'energy nuclear oil OPEC pipeline solar datacenter power',
-  'inflation federal reserve interest rate GDP economy recession',
-  'trade tariff export import supply chain logistics shipping',
-  'artificial intelligence AI model cloud Microsoft Google Amazon',
-  'mining metals lithium copper gold rare earth',
-  'defense military weapons election political',
+  'semiconductor nvidia TSMC ASML chip export',
+  'oil OPEC hormuz energy nuclear datacenter',
+  'trade tariff sanctions geopolitical conflict',
+  'inflation federal reserve interest rate GDP',
+  'mining lithium copper gold metals',
 ];
 
 function parseRSS(xml, feed) {
@@ -191,8 +188,8 @@ async function fetchGDELT() {
   const results = [];
   const promises = GDELT_QUERIES.map(async q => {
     try {
-      const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&maxrecords=10&format=json&timespan=10080&sort=datedesc`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&maxrecords=6&format=json&timespan=1440&sort=datedesc`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
       const data = await res.json();
       if(!data.articles) return [];
       return data.articles.map((a, i) => {
@@ -227,7 +224,7 @@ async function fetchFinnhub() {
   try {
     const res = await fetch(
       `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_KEY}`,
-      { signal: AbortSignal.timeout(6000) }
+      { signal: AbortSignal.timeout(4000) }
     );
     const items = await res.json();
     if(!Array.isArray(items)) return [];
