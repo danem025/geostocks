@@ -1037,6 +1037,13 @@ function updateNotifBadge() {
 
 // ── MISC ──────────────────────────────────────────────────────────────────────
 function toggleTheme(){document.documentElement.classList.toggle('light');}
+// Auto-detect system theme
+if(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches){
+  document.documentElement.classList.add('light');
+}
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+  document.documentElement.classList.toggle('light', e.matches);
+});
 function toggleNotif(){document.getElementById('notif-drop').classList.toggle('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('#notif-drop')&&!e.target.closest('#bell'))document.getElementById('notif-drop').classList.remove('open');});
 
