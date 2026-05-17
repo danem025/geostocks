@@ -300,19 +300,22 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
       <div class="ph-acts">
         <button class="pa on" id="gm-event" onclick="setGraphMode('event')">Event</button>
         <button class="pa" id="gm-full" onclick="setGraphMode('full')">Full map</button>
+        <button class="pa" id="gm-collapse" onclick="collapseGraph()" style="display:none">Collapse</button>
       </div>
     </div>
     <div id="graph-wrap">
       <div class="empty-graph" id="graph-empty">
         <div class="eg-icon">⬡</div>
-        <div class="eg-text">Select a signal from the feed<br>to visualize the cascade<br><span style="opacity:.5;font-size:8.5px">or browse the full supply chain map</span></div>
+        <div class="eg-text">Select a signal from the feed<br>to visualize the cascade<br><span style="opacity:.5;font-size:8.5px">Click nodes to expand · Navigate infinitely</span></div>
       </div>
       <svg id="graph-svg">
         <defs>
-          <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          <filter id="glow-lg"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
-        <g id="g-zoom"><g id="g-links"></g><g id="g-nodes"></g></g>
+        <g id="g-zoom">
+          <g id="g-links"></g>
+          <g id="g-nodes"></g>
+        </g>
       </svg>
       <div class="graph-legend" id="graph-legend" style="display:none;">
         <div class="gl-title">Layers</div>
@@ -351,6 +354,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
   <span id="disc-sources">Finnhub · GDELT · Polymarket · RSS</span>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
 // ── API CONFIG ────────────────────────────────────────────────────────────────
 const FINNHUB_KEY = 'd847u89r01qutij88epgd847u89r01qutij88eq0';
@@ -640,8 +644,6 @@ let hiddenLayers = new Set();
 let graphMode = 'event';
 let selNewsId = null;
 let selStockId = null;
-let gTranslate = {x:0,y:0};
-let gScale = 1;
 let graphHistory = [];
 let histIdx = -1;
 
@@ -736,9 +738,7 @@ function selectNews(id) {
   if(el){el.classList.add('sel');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
   const ev=liveNews.find(n=>n.id===id);if(!ev)return;
   document.getElementById('p2-title').textContent=ev.hl.slice(0,45)+'…';
-  document.getElementById('graph-empty').style.display='none';
-  document.getElementById('graph-legend').style.display='block';
-  drawEventGraph(ev);
+  initEventGraph(ev);
   if(ev.rootId&&STOCKS[ev.rootId]) selectStock(ev.rootId);
   pushHistory({type:'event',eventId:id,stockId:ev.rootId});
 }
@@ -789,179 +789,272 @@ function selectStock(id) {
   document.getElementById('ns-name').textContent=d.name;
   document.getElementById('news-rows').innerHTML=newsHtml;
   document.getElementById('news-sub').style.display=newsHtml?'block':'none';
-  if(graphMode==='event'&&selNewsId){
-    const ev=liveNews.find(n=>n.id===selNewsId);
-    if(ev) drawEventGraph(ev,id);
+  // Highlight node in graph if visible
+  if(visibleNodes && visibleNodes.has(id)) {
+    d3.select('#g-nodes').selectAll('g.gnode')
+      .select('.main')
+      .attr('fill', d => d.id===id ? STOCKS[d.id]?.color||'#fff' : `${STOCKS[d.id]?.color||'#fff'}22`)
+      .attr('stroke-width', d => d.id===id ? 2.5 : 1.8);
   }
 }
 
-// ── GRAPH ─────────────────────────────────────────────────────────────────────
-function drawEventGraph(ev, highlightId) {
-  const wrap=document.getElementById('graph-wrap');
-  const W=wrap.clientWidth,H=wrap.clientHeight;
-  const svg=document.getElementById('graph-svg');
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  document.getElementById('g-links').innerHTML='';
-  document.getElementById('g-nodes').innerHTML='';
-  const nodeIds=(ev.graphNodes||[]).filter(id=>STOCKS[id]);
-  if(!nodeIds.length) return;
-  const rootId=ev.rootId;
-  const cx=W/2,cy=H/2;
-  const positions={};
-  positions[rootId]={x:cx,y:cy};
-  const others=nodeIds.filter(id=>id!==rootId);
-  const R=Math.min(W,H)*0.3;
-  others.forEach((id,i)=>{
-    const a=(i/others.length)*Math.PI*2-Math.PI/2;
-    positions[id]={x:cx+Math.cos(a)*R,y:cy+Math.sin(a)*R};
+// ── D3 FORCE GRAPH ────────────────────────────────────────────────────────────
+// All supply chain links
+const ALL_LINKS = [];
+Object.entries(STOCKS).forEach(([sid, sd]) => {
+  (sd.cascade||[]).forEach(c => {
+    if(STOCKS[c.id]) ALL_LINKS.push({s:sid, t:c.id, w:c.w});
   });
-  const visSet=new Set(nodeIds);
-  const linksG=document.getElementById('g-links');
-  nodeIds.forEach(sid=>{
-    const sd=STOCKS[sid];if(!sd)return;
-    (sd.cascade||[]).forEach(c=>{
-      if(!visSet.has(c.id))return;
-      const sp=positions[sid],tp=positions[c.id];if(!sp||!tp)return;
-      const isAct=!highlightId||(sid===highlightId||c.id===highlightId);
-      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1',sp.x);line.setAttribute('y1',sp.y);
-      line.setAttribute('x2',tp.x);line.setAttribute('y2',tp.y);
-      line.setAttribute('stroke',sd.color);
-      line.setAttribute('stroke-width',0.3+c.w*0.28);
-      line.setAttribute('stroke-opacity',isAct?0.1+c.w*0.07:0.03);
-      linksG.appendChild(line);
-    });
-  });
-  const nodesG=document.getElementById('g-nodes');
-  nodeIds.forEach(id=>{
-    const d=STOCKS[id],p=positions[id];if(!d||!p)return;
-    const isRoot=id===rootId,isHl=id===highlightId;
-    const op=highlightId?(id===highlightId||id===rootId?1:0.2):1;
-    const lp=livePrices[id];
-    const chgTxt=lp?`${lp.change>=0?'+':''}${lp.change.toFixed(1)}%`:'';
-    const chgCol=lp?(lp.change>=0?'#22c55e':'#ef4444'):'rgba(200,200,255,0.4)';
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.style.cursor='pointer';g.style.opacity=op;
-    g.addEventListener('click',()=>{selectStock(id);pushHistory({type:'stock',stockId:id});});
-    const r=isRoot?d.r+3:d.r;
-    const halo=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    halo.setAttribute('cx',p.x);halo.setAttribute('cy',p.y);halo.setAttribute('r',r+10);
-    halo.setAttribute('fill',d.color);halo.setAttribute('opacity',isRoot?0.15:0.05);
-    g.appendChild(halo);
-    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r',r);
-    circle.setAttribute('fill',isRoot?d.color:`${d.color}20`);
-    circle.setAttribute('stroke',d.color);circle.setAttribute('stroke-width',isRoot?0:1.8);
-    circle.setAttribute('filter',r>18?'url(#glow-lg)':'url(#glow)');
-    g.appendChild(circle);
-    const flagT=document.createElementNS('http://www.w3.org/2000/svg','text');
-    flagT.setAttribute('x',p.x);flagT.setAttribute('y',p.y-r-7);
-    flagT.setAttribute('text-anchor','middle');flagT.setAttribute('font-size','11');
-    flagT.textContent=d.flag;g.appendChild(flagT);
-    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    lbl.setAttribute('x',p.x);lbl.setAttribute('y',p.y+(isRoot?-2:2));
-    lbl.setAttribute('text-anchor','middle');lbl.setAttribute('font-family','DM Mono,monospace');
-    lbl.setAttribute('font-size',isRoot?'9.5':'8');
-    lbl.setAttribute('fill',isRoot?'white':d.color);lbl.setAttribute('font-weight','500');
-    lbl.textContent=d.name;g.appendChild(lbl);
-    if(chgTxt){
-      const chg=document.createElementNS('http://www.w3.org/2000/svg','text');
-      chg.setAttribute('x',p.x);chg.setAttribute('y',p.y+r+14);
-      chg.setAttribute('text-anchor','middle');chg.setAttribute('font-family','DM Mono,monospace');
-      chg.setAttribute('font-size','8.5');chg.setAttribute('fill',chgCol);
-      chg.textContent=chgTxt;g.appendChild(chg);
-    }
-    nodesG.appendChild(g);
-  });
-  if(highlightId&&positions[highlightId]){
-    const p2=positions[highlightId];
-    setTransform(W/2-p2.x*1.3,H/2-p2.y*1.3,1.3);
-  } else {
-    setTransform(0,0,1);
+});
+
+let d3svg, d3zoom, simulation;
+let visibleNodes = new Set(); // currently visible node IDs
+let lockedNode = null;
+let graphMode = 'event';
+
+function gNeighbors(id) {
+  return [...new Set([
+    ...ALL_LINKS.filter(l=>l.s===id).map(l=>l.t),
+    ...ALL_LINKS.filter(l=>l.t===id).map(l=>l.s),
+  ])].filter(n=>!visibleNodes.has(n) && STOCKS[n]);
+}
+
+function expandNode(id) {
+  const nb = gNeighbors(id);
+  if(!nb.length) return false;
+  nb.forEach(n => visibleNodes.add(n));
+  return true;
+}
+
+function collapseGraph() {
+  if(selNewsId) {
+    const ev = liveNews.find(n=>n.id===selNewsId);
+    if(ev) { initEventGraph(ev); return; }
   }
+  visibleNodes = new Set(Object.keys(STOCKS));
+  redrawGraph();
+}
+
+function initD3() {
+  const wrap = document.getElementById('graph-wrap');
+  const svg = d3.select('#graph-svg')
+    .attr('width', wrap.clientWidth)
+    .attr('height', wrap.clientHeight);
+
+  d3zoom = d3.zoom()
+    .scaleExtent([0.05, 8])
+    .on('zoom', e => d3.select('#g-zoom').attr('transform', e.transform));
+
+  svg.call(d3zoom);
+  svg.call(d3zoom.transform, d3.zoomIdentity.translate(wrap.clientWidth/2, wrap.clientHeight/2));
+
+  d3svg = svg;
+}
+
+function redrawGraph() {
+  if(!d3svg) initD3();
+  const wrap = document.getElementById('graph-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+
+  const nodeIds = [...visibleNodes];
+  const nodes = nodeIds.map(id => {
+    const d = STOCKS[id];
+    const p = livePrices[id];
+    return { id, name:d.name, flag:d.flag, color:d.color, r:d.r||12, layer:d.layer,
+      chg: p ? p.change : null, price: p ? p.price : null };
+  });
+
+  const links = ALL_LINKS
+    .filter(l => visibleNodes.has(l.s) && visibleNodes.has(l.t))
+    .map(l => ({...l, source:l.s, target:l.t}));
+
+  // Stop existing simulation
+  if(simulation) simulation.stop();
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(d => 60 + (10-d.w)*8))
+    .force('charge', d3.forceManyBody().strength(d => -(150 + d.r*15)))
+    .force('collide', d3.forceCollide().radius(d => d.r+20).strength(0.8))
+    .force('center', d3.forceCenter(0, 0).strength(0.05));
+
+  // Draw links
+  const linkSel = d3.select('#g-links')
+    .selectAll('line')
+    .data(links, d => d.s+'_'+d.t)
+    .join('line')
+    .attr('stroke', d => STOCKS[d.s]?.color || '#fff')
+    .attr('stroke-width', d => 0.3 + d.w*0.25)
+    .attr('stroke-opacity', d => 0.05 + d.w*0.06);
+
+  // Draw nodes
+  const nodeSel = d3.select('#g-nodes')
+    .selectAll('g.gnode')
+    .data(nodes, d => d.id)
+    .join(enter => {
+      const g = enter.append('g').attr('class','gnode').style('cursor','pointer');
+
+      // Halo
+      g.append('circle').attr('class','halo')
+        .attr('r', d => d.r+10)
+        .attr('fill', d => d.color)
+        .attr('opacity', 0.06);
+
+      // Main circle
+      g.append('circle').attr('class','main')
+        .attr('r', d => d.r)
+        .attr('fill', d => d.id===lockedNode ? d.color : `${d.color}22`)
+        .attr('stroke', d => d.color)
+        .attr('stroke-width', 1.8)
+        .attr('filter', 'url(#glow)');
+
+      // Flag
+      g.append('text').attr('class','flag')
+        .attr('text-anchor','middle')
+        .attr('y', d => -d.r-7)
+        .attr('font-size', 11)
+        .text(d => d.flag);
+
+      // Name
+      g.append('text').attr('class','label')
+        .attr('text-anchor','middle')
+        .attr('y', 3)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', d => d.id===lockedNode ? 9.5 : 8)
+        .attr('fill', d => d.id===lockedNode ? 'white' : d.color)
+        .attr('font-weight', d => d.id===lockedNode ? '600' : '400')
+        .text(d => d.name);
+
+      // Price change
+      g.append('text').attr('class','chg')
+        .attr('text-anchor','middle')
+        .attr('y', d => d.r+13)
+        .attr('font-family','DM Mono, monospace')
+        .attr('font-size', 8.5)
+        .attr('fill', d => d.chg===null?'rgba(180,180,255,0.4)':d.chg>=0?'#22c55e':'#ef4444')
+        .text(d => d.chg!==null ? `${d.chg>=0?'+':''}${d.chg.toFixed(1)}%` : '');
+
+      // Expand indicator — shows if node has hidden neighbors
+      g.append('text').attr('class','expand-hint')
+        .attr('text-anchor','middle')
+        .attr('y', d => -d.r-18)
+        .attr('font-size', 8)
+        .attr('fill', 'rgba(0,217,255,0.6)')
+        .text(d => gNeighbors(d.id).length > 0 ? `+${gNeighbors(d.id).length}` : '');
+
+      return g;
+    }, update => update)
+    .on('click', (e, d) => {
+      e.stopPropagation();
+      const wasLocked = lockedNode === d.id;
+      lockedNode = wasLocked ? null : d.id;
+      const expanded = expandNode(d.id);
+      if(expanded || !wasLocked) {
+        redrawGraph();
+        // Auto-zoom to clicked node
+        if(d.x && d.y) {
+          const wrap = document.getElementById('graph-wrap');
+          d3svg.transition().duration(500).call(
+            d3zoom.transform,
+            d3.zoomIdentity.translate(wrap.clientWidth/2 - d.x*1.4, wrap.clientHeight/2 - d.y*1.4).scale(1.4)
+          );
+        }
+      }
+      selectStock(d.id);
+      pushHistory({type:'stock', stockId:d.id});
+      document.getElementById('gm-collapse').style.display='block';
+    });
+
+  // Drag
+  nodeSel.call(d3.drag()
+    .on('start', (e,d) => { if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+    .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
+    .on('end',   (e,d) => { if(!e.active) simulation.alphaTarget(0); if(d.id!==lockedNode){d.fx=null;d.fy=null;} })
+  );
+
+  // Tick
+  simulation.on('tick', () => {
+    linkSel
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeSel.attr('transform', d => `translate(${d.x||0},${d.y||0})`);
+  });
+
   updateLegend(nodeIds);
   updateGraphInfo(nodeIds);
 }
 
-function drawFullMap() {
-  const wrap=document.getElementById('graph-wrap');
-  const W=wrap.clientWidth,H=wrap.clientHeight;
-  const svg=document.getElementById('graph-svg');
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  document.getElementById('g-links').innerHTML='';
-  document.getElementById('g-nodes').innerHTML='';
-  const allIds=Object.keys(STOCKS);
-  const cx=W/2,cy=H/2;
-  const positions={};
-  const layerOrder=['mat','lit','fab','chp','cld','ai','ene','oil','shp','fin'];
-  const byLayer={};
-  allIds.forEach(id=>{const l=STOCKS[id].layer;if(!byLayer[l])byLayer[l]=[];byLayer[l].push(id);});
-  layerOrder.forEach((lid,li)=>{
-    const ids=byLayer[lid]||[];
-    const r=55+li*30;
-    ids.forEach((id,i)=>{const a=(i/Math.max(1,ids.length))*Math.PI*2-Math.PI/2;positions[id]={x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r};});
-  });
-  allIds.forEach(id=>{if(!positions[id])positions[id]={x:cx+(Math.random()-.5)*200,y:cy+(Math.random()-.5)*200};});
-  const linksG=document.getElementById('g-links');
-  allIds.forEach(sid=>{const sd=STOCKS[sid];if(!sd)return;(sd.cascade||[]).forEach(c=>{if(!positions[c.id])return;const sp=positions[sid],tp=positions[c.id];const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',sp.x);line.setAttribute('y1',sp.y);line.setAttribute('x2',tp.x);line.setAttribute('y2',tp.y);line.setAttribute('stroke',sd.color);line.setAttribute('stroke-width',0.3+c.w*0.22);line.setAttribute('stroke-opacity',0.04+c.w*0.055);linksG.appendChild(line);});});
-  const nodesG=document.getElementById('g-nodes');
-  allIds.forEach(id=>{
-    const d=STOCKS[id],p=positions[id];if(!d||!p)return;
-    const lp=livePrices[id];
-    const col=lp?(lp.change>=0?'#22c55e':'#ef4444'):d.color;
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.style.cursor='pointer';
-    g.addEventListener('click',()=>{selectStock(id);pushHistory({type:'stock',stockId:id});});
-    const r=Math.max(7,d.r*0.65);
-    const h=document.createElementNS('http://www.w3.org/2000/svg','circle');h.setAttribute('cx',p.x);h.setAttribute('cy',p.y);h.setAttribute('r',r+5);h.setAttribute('fill',d.color);h.setAttribute('opacity','0.04');g.appendChild(h);
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',r);c.setAttribute('fill',`${d.color}18`);c.setAttribute('stroke',lp?col:d.color);c.setAttribute('stroke-width','1.3');c.setAttribute('filter','url(#glow)');g.appendChild(c);
-    const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',p.x);t.setAttribute('y',p.y-r-4);t.setAttribute('text-anchor','middle');t.setAttribute('font-family','DM Mono,monospace');t.setAttribute('font-size','7');t.setAttribute('fill',d.color);t.textContent=d.name;g.appendChild(t);
-    if(lp){const ct=document.createElementNS('http://www.w3.org/2000/svg','text');ct.setAttribute('x',p.x);ct.setAttribute('y',p.y+r+10);ct.setAttribute('text-anchor','middle');ct.setAttribute('font-family','DM Mono,monospace');ct.setAttribute('font-size','6.5');ct.setAttribute('fill',col);ct.textContent=`${lp.change>=0?'+':''}${lp.change.toFixed(1)}%`;g.appendChild(ct);}
-    nodesG.appendChild(g);
-  });
-  setTransform(0,0,1);
-  updateLegend(allIds);
-  updateGraphInfo(allIds);
+function initEventGraph(ev) {
+  document.getElementById('graph-empty').style.display='none';
+  document.getElementById('graph-legend').style.display='block';
+  document.getElementById('gm-collapse').style.display='none';
+
+  // Start with just root + direct cascade
+  visibleNodes = new Set();
+  if(ev.rootId && STOCKS[ev.rootId]) {
+    visibleNodes.add(ev.rootId);
+    lockedNode = ev.rootId;
+    // Add first degree cascade
+    (STOCKS[ev.rootId].cascade||[]).forEach(c => {
+      if(STOCKS[c.id]) visibleNodes.add(c.id);
+    });
+  }
+  // Also add any stocks from the event's graphNodes
+  (ev.graphNodes||[]).forEach(id => { if(STOCKS[id]) visibleNodes.add(id); });
+
+  redrawGraph();
+
+  // Zoom to root
+  const wrap = document.getElementById('graph-wrap');
+  if(d3svg) {
+    d3svg.transition().duration(600).call(
+      d3zoom.transform,
+      d3.zoomIdentity.translate(wrap.clientWidth/2, wrap.clientHeight/2).scale(1)
+    );
+  }
 }
 
-// ── ZOOM ─────────────────────────────────────────────────────────────────────
-function setTransform(tx,ty,sc){gTranslate={x:tx,y:ty};gScale=sc;document.getElementById('g-zoom').setAttribute('transform',`translate(${tx},${ty}) scale(${sc})`);}
-function zoomIn(){setTransform(gTranslate.x,gTranslate.y,Math.min(gScale*1.3,6));}
-function zoomOut(){setTransform(gTranslate.x,gTranslate.y,Math.max(gScale*0.75,0.1));}
-function zoomFit(){setTransform(0,0,1);}
-document.getElementById('graph-svg').addEventListener('wheel',e=>{
-  e.preventDefault();
-  const factor=e.deltaY<0?1.15:0.87;
-  const rect=e.currentTarget.getBoundingClientRect();
-  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
-  const ns=Math.min(6,Math.max(0.1,gScale*factor));
-  const sd=ns/gScale;
-  gTranslate={x:mx-(mx-gTranslate.x)*sd,y:my-(my-gTranslate.y)*sd};
-  gScale=ns;
-  document.getElementById('g-zoom').setAttribute('transform',`translate(${gTranslate.x},${gTranslate.y}) scale(${gScale})`);
-},{passive:false});
-let panning=false,panStart={x:0,y:0},panOrigin={x:0,y:0};
-const gsvg=document.getElementById('graph-svg');
-gsvg.addEventListener('mousedown',e=>{if(e.button===0){panning=true;panStart={x:e.clientX,y:e.clientY};panOrigin={...gTranslate};}});
-document.addEventListener('mousemove',e=>{if(!panning)return;gTranslate={x:panOrigin.x+(e.clientX-panStart.x),y:panOrigin.y+(e.clientY-panStart.y)};document.getElementById('g-zoom').setAttribute('transform',`translate(${gTranslate.x},${gTranslate.y}) scale(${gScale})`);});
-document.addEventListener('mouseup',()=>panning=false);
+function drawFullMap() {
+  document.getElementById('graph-empty').style.display='none';
+  document.getElementById('graph-legend').style.display='block';
+  document.getElementById('p2-title').textContent='Full supply chain map';
+  document.getElementById('gm-collapse').style.display='none';
+  visibleNodes = new Set(Object.keys(STOCKS));
+  lockedNode = null;
+  redrawGraph();
+}
+
+// Zoom controls using D3
+function zoomIn() { d3svg?.transition().duration(300).call(d3zoom.scaleBy, 1.3); }
+function zoomOut() { d3svg?.transition().duration(300).call(d3zoom.scaleBy, 0.77); }
+function zoomFit() {
+  const wrap = document.getElementById('graph-wrap');
+  d3svg?.transition().duration(400).call(
+    d3zoom.transform,
+    d3.zoomIdentity.translate(wrap.clientWidth/2, wrap.clientHeight/2).scale(1)
+  );
+}
 
 // ── HISTORY ───────────────────────────────────────────────────────────────────
 function pushHistory(state){graphHistory=graphHistory.slice(0,histIdx+1);graphHistory.push(state);histIdx=graphHistory.length-1;updateHistBtns();}
 function histBack(){if(histIdx<=0)return;histIdx--;restoreState(graphHistory[histIdx]);updateHistBtns();}
 function histFwd(){if(histIdx>=graphHistory.length-1)return;histIdx++;restoreState(graphHistory[histIdx]);updateHistBtns();}
-function restoreState(s){if(s.type==='event')selectNews(s.eventId);else if(s.type==='stock')selectStock(s.stockId);else if(s.type==='fullmap')drawFullMap();}
+function restoreState(s){if(s.type==='event'){const ev=liveNews.find(n=>n.id===s.eventId);if(ev)initEventGraph(ev);}else if(s.type==='stock')selectStock(s.stockId);else if(s.type==='fullmap')drawFullMap();}
 function updateHistBtns(){document.getElementById('btn-back').disabled=histIdx<=0;document.getElementById('btn-fwd').disabled=histIdx>=graphHistory.length-1;}
 
 // ── LEGEND ────────────────────────────────────────────────────────────────────
 function updateLegend(nodeIds){
   const layersInUse=new Set(nodeIds.map(id=>STOCKS[id]?.layer).filter(Boolean));
   document.getElementById('gl-items').innerHTML=LAYERS.filter(l=>layersInUse.has(l.id)).map(l=>`
-    <div class="gl-item${hiddenLayers.has(l.id)?' dimmed':''}" onclick="toggleLayer('${l.id}')">
+    <div class="gl-item" onclick="focusLayer('${l.id}')">
       <div class="gl-dot" style="background:${l.color}"></div>${l.name}
     </div>`).join('');
 }
-function toggleLayer(id){hiddenLayers.has(id)?hiddenLayers.delete(id):hiddenLayers.add(id);document.querySelectorAll('.gl-item').forEach(el=>{if(el.querySelector('.gl-dot')?.style.background===LAYERS.find(l=>l.id===id)?.color)el.classList.toggle('dimmed',hiddenLayers.has(id));});}
+function focusLayer(id){
+  // Highlight nodes of this layer
+  d3.select('#g-nodes').selectAll('g.gnode')
+    .style('opacity', d => STOCKS[d.id]?.layer===id ? 1 : 0.15);
+  setTimeout(()=>d3.select('#g-nodes').selectAll('g.gnode').style('opacity',1), 1500);
+}
 function updateGraphInfo(nodeIds){const ls=new Set(nodeIds.map(id=>STOCKS[id]?.layer).filter(Boolean));document.getElementById('gc-info').textContent=`${nodeIds.length} companies · ${ls.size} layers`;}
 
 // ── GRAPH MODE ────────────────────────────────────────────────────────────────
@@ -970,17 +1063,13 @@ function setGraphMode(mode){
   document.getElementById('gm-event').classList.toggle('on',mode==='event');
   document.getElementById('gm-full').classList.toggle('on',mode==='full');
   if(mode==='full'){
-    document.getElementById('graph-empty').style.display='none';
-    document.getElementById('graph-legend').style.display='block';
-    document.getElementById('p2-title').textContent='Full supply chain map';
     drawFullMap();
     pushHistory({type:'fullmap'});
   } else if(selNewsId){
     const ev=liveNews.find(n=>n.id===selNewsId);
-    if(ev) drawEventGraph(ev,selStockId);
+    if(ev) initEventGraph(ev);
   }
 }
-
 // ── SPLIT ─────────────────────────────────────────────────────────────────────
 function toggleSplit(){
   splitActive=!splitActive;
@@ -1100,6 +1189,7 @@ async function init() {
   initResizer('r1','p1','p2');
   initResizer('r2','p2','p3');
   initVResizer();
+  initD3();
   updateBourseClocks();
   setInterval(updateBourseClocks, 30000);
 
