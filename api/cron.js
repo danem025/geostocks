@@ -2,6 +2,7 @@
 // Fetches all news sources and stores in Supabase
 
 const FINNHUB_KEY = process.env.FINNHUB_KEY || 'd847u89r01qutij88epgd847u89r01qutij88eq0';
+const MARKETAUX_KEY = process.env.MARKETAUX_KEY || 's5ApxX4ft8nBVHINMtC35S99olKrBDIu1IbfklIb';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -184,40 +185,44 @@ async function fetchRSS() {
   return results;
 }
 
-async function fetchGDELT() {
-  const results = [];
-  const promises = GDELT_QUERIES.map(async q => {
-    try {
-      const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&maxrecords=6&format=json&timespan=1440&sort=datedesc`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-      const data = await res.json();
-      if(!data.articles) return [];
-      return data.articles.map((a, i) => {
-        const hl = a.title || '';
-        const stocks = detectStocks(hl);
-        if(!stocks.length) return null;
-        const region = detectRegion(hl + ' ' + (a.sourcecountry||''));
-        return {
-          id: `gd_${q.slice(0,6).replace(/\s/g,'')}_${i}_${Date.now()}`,
-          type: detectType(hl),
-          regions: [region],
-          sectors: [detectSector(hl)],
-          flags: [regionToFlag(region)],
-          hl: hl.slice(0, 140),
-          src: (a.domain||'GDELT').replace('www.','').split('.')[0],
-          lang: 'EN',
-          ago: 'recent',
-          root_id: stocks[0],
-          graph_nodes: stocks,
-          is_live: true,
-          fetched_at: new Date().toISOString(),
-        };
-      }).filter(Boolean);
-    } catch(e) { return []; }
-  });
-  const all = await Promise.allSettled(promises);
-  all.forEach(r => { if(r.status==='fulfilled') results.push(...r.value); });
-  return results;
+async function fetchMarketaux() {
+  try {
+    // Fetch geopolitical + financial news with stock entities already tagged
+    const url = `https://api.marketaux.com/v1/news/all?filter_entities=true&language=en&limit=50&api_token=${MARKETAUX_KEY}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const data = await res.json();
+    if(!data.data || !Array.isArray(data.data)) return [];
+    return data.data.map((item, i) => {
+      const hl = item.title || '';
+      // Use Marketaux entity tagging — stocks already identified
+      const entityStocks = (item.entities||[])
+        .filter(e => e.type === 'equity' && e.symbol)
+        .map(e => e.symbol)
+        .filter(s => s.length <= 5)
+        .slice(0, 6);
+      const stocks = entityStocks.length > 0 ? entityStocks : detectStocks(hl + ' ' + (item.description||''));
+      if(!stocks.length) return null;
+      const region = detectRegion(hl + ' ' + (item.description||'') + ' ' + (item.countries||[]).join(' '));
+      return {
+        id: `mx_${i}_${Date.now()}`,
+        type: detectType(hl),
+        regions: [region],
+        sectors: [detectSector(hl + ' ' + (item.description||''))],
+        flags: [regionToFlag(region)],
+        hl: hl.slice(0, 140),
+        src: item.source || 'Marketaux',
+        lang: 'EN',
+        ago: item.published_at ? timeAgo(new Date(item.published_at).getTime()) : 'recent',
+        root_id: stocks[0],
+        graph_nodes: stocks,
+        is_live: true,
+        fetched_at: new Date().toISOString(),
+      };
+    }).filter(Boolean);
+  } catch(e) {
+    console.error('Marketaux error:', e.message);
+    return [];
+  }
 }
 
 async function fetchFinnhub() {
@@ -294,19 +299,19 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
   if(req.method==='OPTIONS'){res.status(200).end();return;}
   try {
-    const [rssNews, gdeltNews, finnhubNews] = await Promise.all([
+    const [rssNews, marketauxNews, finnhubNews] = await Promise.all([
       fetchRSS(),
-      fetchGDELT(),
+      fetchMarketaux(),
       fetchFinnhub(),
     ]);
 
-    const all = [...finnhubNews, ...rssNews, ...gdeltNews];
+    const all = [...finnhubNews, ...rssNews, ...marketauxNews];
     const status = await saveToSupabase(all);
     await cleanOldNews();
 
     res.status(200).json({
       saved: all.length,
-      sources: { finnhub: finnhubNews.length, rss: rssNews.length, gdelt: gdeltNews.length },
+      sources: { finnhub: finnhubNews.length, rss: rssNews.length, marketaux: marketauxNews.length },
       supabaseStatus: status,
       fetchedAt: new Date().toISOString(),
     });
