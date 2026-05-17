@@ -808,9 +808,8 @@ Object.entries(STOCKS).forEach(([sid, sd]) => {
 });
 
 let d3svg, d3zoom, simulation;
-let visibleNodes = new Set(); // currently visible node IDs
+let visibleNodes = new Set();
 let lockedNode = null;
-let graphMode = 'event';
 
 function gNeighbors(id) {
   return [...new Set([
