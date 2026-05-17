@@ -1685,9 +1685,9 @@ function drawArticlesGraph() {
   if(simulation) simulation.stop();
 
   simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d=>d.id).distance(d => 220 + (3-Math.min(d.w,3))*60))
-    .force('charge', d3.forceManyBody().strength(-600))
-    .force('collide', d3.forceCollide().radius(110).strength(0.95))
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(d => 280 + (3-Math.min(d.w,3))*60))
+    .force('charge', d3.forceManyBody().strength(-800))
+    .force('collide', d3.forceCollide().radius(130).strength(0.95))
     .force('center', d3.forceCenter(0, 0).strength(0.02))
     .alphaDecay(0.02)
     .velocityDecay(0.5);
@@ -1713,82 +1713,85 @@ function drawArticlesGraph() {
       d3.select(this).attr('stroke-opacity',0.08+d.w*0.08);
     });
 
-  // Nodes — article cards instead of circles
+  // Nodes — article cards
   const nodeSel = d3.select('#g-nodes')
     .selectAll('g.gnode')
     .data(nodes, d=>d.id)
     .join(enter => {
       const g = enter.append('g').attr('class','gnode').style('cursor','pointer');
 
-      const cardW = 160, cardH = 46;
+      const cardW = 200, cardH = 70;
 
-      // Card background
+      // Card background — solid color, no transparency
       g.append('rect').attr('class','main')
         .attr('x', -cardW/2).attr('y', -cardH/2)
         .attr('width', cardW).attr('height', cardH)
-        .attr('rx', 6).attr('ry', 6)
-        .attr('fill', d => `${d.color}18`)
+        .attr('rx', 7).attr('ry', 7)
+        .attr('fill', d => d.color)
         .attr('stroke', d => d.color)
-        .attr('stroke-width', 1.5);
+        .attr('stroke-width', 1.5)
+        .attr('filter','url(#glow)');
 
-      // Source tag — top left inside card
+      // Dark inner bg for readability
       g.append('rect')
-        .attr('x', -cardW/2+6).attr('y', -cardH/2+6)
-        .attr('width', 52).attr('height', 13)
-        .attr('rx', 3).attr('ry', 3)
-        .attr('fill', d => `${d.color}40`);
+        .attr('x', -cardW/2+1.5).attr('y', -cardH/2+1.5)
+        .attr('width', cardW-3).attr('height', cardH-3)
+        .attr('rx', 6).attr('ry', 6)
+        .attr('fill', 'var(--s2)');
 
+      // Top row: source + flag + ago
       g.append('text')
-        .attr('x', -cardW/2+10).attr('y', -cardH/2+16)
+        .attr('x', -cardW/2+9).attr('y', -cardH/2+14)
         .attr('font-family','DM Mono,monospace')
-        .attr('font-size', 8).attr('fill', d => d.color)
-        .attr('font-weight','600')
-        .text(d => d.shortLabel.slice(0,8));
+        .attr('font-size', 8.5).attr('fill', d => d.color)
+        .attr('font-weight','700')
+        .text(d => d.shortLabel);
 
-      // Flag
       g.append('text')
-        .attr('x', -cardW/2+62).attr('y', -cardH/2+16)
+        .attr('x', -cardW/2+70).attr('y', -cardH/2+14)
         .attr('font-size', 10)
         .text(d => d.flags);
 
-      // Ago — top right
       g.append('text')
-        .attr('x', cardW/2-6).attr('y', -cardH/2+16)
+        .attr('x', cardW/2-8).attr('y', -cardH/2+14)
         .attr('text-anchor','end')
         .attr('font-family','DM Mono,monospace')
         .attr('font-size', 7.5)
-        .attr('fill', 'rgba(180,180,255,0.45)')
+        .attr('fill', 'var(--mu)')
         .text(d => d.ago);
 
-      // Headline — bottom part of card, two lines
+      // Divider line
+      g.append('line')
+        .attr('x1', -cardW/2+8).attr('x2', cardW/2-8)
+        .attr('y1', -cardH/2+18).attr('y2', -cardH/2+18)
+        .attr('stroke', d => `${d.color}40`).attr('stroke-width',0.5);
+
+      // Headline — full width, 2 lines
       g.append('text').attr('class','label')
-        .attr('x', -cardW/2+7).attr('y', -cardH/2+29)
+        .attr('x', -cardW/2+9).attr('y', -cardH/2+30)
         .attr('font-family','Inter,sans-serif')
         .attr('font-size', 8.5)
-        .attr('fill', d => d.color)
+        .attr('fill', 'var(--tx)')
         .attr('font-weight','500')
         .each(function(d) {
-          const words = d.label.split(' ');
-          const line1 = words.slice(0, Math.ceil(words.length/2)).join(' ');
-          const line2 = words.slice(Math.ceil(words.length/2)).join(' ');
-          d3.select(this).append('tspan').attr('x', -cardW/2+7).attr('dy', 0).text(line1.slice(0,22));
-          d3.select(this).append('tspan').attr('x', -cardW/2+7).attr('dy', 11).text(line2.slice(0,22)+'…');
+          const text = d.newsRef?.hl || d.label;
+          const maxChars = 36;
+          const line1 = text.slice(0, maxChars);
+          const line2 = text.slice(maxChars, maxChars*2) + (text.length > maxChars*2 ? '…' : '');
+          d3.select(this).append('tspan').attr('x', -cardW/2+9).attr('dy', 0).text(line1);
+          if(line2) d3.select(this).append('tspan').attr('x', -cardW/2+9).attr('dy', 11).text(line2);
         });
 
-      // Connection count dot
-      g.append('circle')
-        .attr('cx', cardW/2-8).attr('cy', cardH/2-8)
-        .attr('r', 6)
-        .attr('fill', d => d.color)
-        .attr('opacity', 0.8);
-      g.append('text')
-        .attr('x', cardW/2-8).attr('y', cardH/2-5)
-        .attr('text-anchor','middle')
+      // Stock chips row at bottom
+      g.append('text').attr('class','stocks-row')
+        .attr('x', -cardW/2+9).attr('y', cardH/2-7)
         .attr('font-family','DM Mono,monospace')
-        .attr('font-size', 7).attr('fill','white').attr('font-weight','600')
+        .attr('font-size', 7.5)
+        .attr('fill', d => `${d.color}cc`)
+        .attr('font-weight','500')
         .text(d => {
-          const count = links.filter(l=>(l.source.id||l.source)===d.id||(l.target.id||l.target)===d.id).length;
-          return count || '';
+          const tickers = (d.stocks||[]).slice(0,5).map(id => STOCKS[id]?.name || id).join(' · ');
+          return tickers + ((d.stocks||[]).length > 5 ? ' …' : '');
         });
 
       return g;
