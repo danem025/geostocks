@@ -1062,7 +1062,7 @@ function renderFeed(items) {
       const p=livePrices[id];
       const chgTxt=p?`${p.change>=0?'+':''}${p.change.toFixed(1)}%`:'';
       // Use sector color for consistency
-      const secColor = getSectorColor(sd.sectors?.[0)] || sd.color;
+      const secColor = getSectorColor(sd.sectors?.[0]) || sd.color;
       const col=p?(p.change>=0?'#22c55e':'#ef4444'):secColor;
       return `<span class="ni-stk" data-ticker="${id}" style="color:${col};border-color:${col}35;background:${col}0c" onclick="event.stopPropagation();selectStock('${id}')"><span class="stk-name">${sd.name}</span> <span class="stk-chg" style="opacity:.75">${chgTxt}</span></span>`;
     }).join('')+(n.graphNodes.length>5?`<span class="ni-stk" style="color:var(--mu);border-color:var(--b1)">+${n.graphNodes.length-5}</span>`:'');
@@ -1335,7 +1335,7 @@ function redrawGraph() {
     const d = STOCKS[id];
     const p = livePrices[id];
     // Use sector color for consistency
-    const secColor = getSectorColor(d.sectors?.[0)] || d.color;
+    const secColor = getSectorColor(d.sectors?.[0]) || d.color;
     return { id, name:d.name, flag:d.flag, color:secColor, r:d.r||12, layer:d.layer,
       chg: p ? p.change : null, price: p ? p.price : null };
   });
