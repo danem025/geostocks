@@ -36,6 +36,15 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 .bd.soon{background:var(--yel);}
 .notif-wrap{position:relative;}
 .nbadge{position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--red);font-size:7.5px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg);}
+#notif-drop{position:absolute;top:42px;right:0;width:300px;background:var(--s1);border:1px solid var(--b2);border-radius:0 0 8px 8px;z-index:300;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+#notif-drop.open{display:block;}
+.notif-head{padding:8px 13px;border-bottom:1px solid var(--b1);font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);}
+.notif-item{padding:9px 13px;border-bottom:1px solid var(--b1);cursor:pointer;border-left:2px solid transparent;transition:background .1s;}
+.notif-item:hover{background:var(--s2);}
+.notif-item.unread{border-left-color:var(--acc);}
+.notif-name{font-size:11px;font-weight:500;color:var(--tx);margin-bottom:2px;}
+.notif-body{font-size:10px;color:var(--mu);line-height:1.4;}
+.notif-ago{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);opacity:.5;margin-top:3px;}
 .data-status{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);padding:2px 8px;border:1px solid var(--b1);border-radius:4px;}
 .ds-dot{width:5px;height:5px;border-radius:50%;background:var(--mu);}
 .ds-dot.live{background:var(--grn);animation:pulse 2s infinite;}
@@ -216,9 +225,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
     <button class="tb-btn" onclick="toggleTheme()">◐</button>
     <div class="notif-wrap">
       <button class="tb-btn" id="bell" onclick="toggleNotif()">🔔<div class="nbadge" id="notif-badge">0</div></button>
-      <div id="notif-drop" style="position:absolute;top:42px;right:0;width:290px;background:var(--s1);border:1px solid var(--b2);border-radius:0 0 8px 8px;z-index:300;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5);">
-        <div style="padding:7px 12px;border-bottom:1px solid var(--b1);font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);">Alerts</div>
-        <div id="notif-items"></div>
+      <div id="notif-drop">
+        <div class="notif-head">Alerts</div>
+        <div id="notif-items"><div style="padding:12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);">Loading alerts…</div></div>
       </div>
     </div>
   </div>
@@ -1021,18 +1030,43 @@ function setStatus(state, txt) {
 }
 
 function updateNotifBadge() {
-  const count = Object.values(livePrices).filter(p=>Math.abs(p.change)>3).length;
-  document.getElementById('notif-badge').textContent = count;
+  // Movers > 2%
+  const movers = Object.entries(livePrices)
+    .filter(([,p]) => Math.abs(p.change) > 2)
+    .sort((a,b) => Math.abs(b[1].change) - Math.abs(a[1].change))
+    .slice(0, 5);
+
+  // Top news alerts
+  const newsAlerts = liveNews.slice(0, 3);
+
+  const total = movers.length + newsAlerts.length;
+  document.getElementById('notif-badge').textContent = total || '0';
+
   const el = document.getElementById('notif-items');
-  const big = Object.entries(livePrices).filter(([,p])=>Math.abs(p.change)>2).sort((a,b)=>Math.abs(b[1].change)-Math.abs(a[1].change)).slice(0,5);
-  el.innerHTML = big.map(([ticker,p])=>{
-    const s=STOCKS[ticker];if(!s)return'';
-    const sign=p.change>=0?'+':'';
-    return `<div style="padding:8px 12px;border-bottom:1px solid var(--b1);cursor:pointer;border-left:2px solid ${p.change>=0?'#22c55e':'#ef4444'}" onclick="selectStock('${ticker}');toggleNotif()">
-      <div style="font-size:10.5px;font-weight:500;color:var(--tx);margin-bottom:2px;">${s.flag} ${s.name} <span style="color:${p.change>=0?'#22c55e':'#ef4444'}">${sign}${p.change.toFixed(2)}%</span></div>
-      <div style="font-size:9.5px;color:var(--mu);">$${p.price.toFixed(2)} · ${s.desc.slice(0,50)}…</div>
+  if(!total) {
+    el.innerHTML = `<div style="padding:16px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);">No major alerts right now</div>`;
+    return;
+  }
+
+  const moverHtml = movers.map(([ticker, p]) => {
+    const s = STOCKS[ticker]; if(!s) return '';
+    const sign = p.change >= 0 ? '+' : '';
+    const col = p.change >= 0 ? 'var(--grn)' : 'var(--red)';
+    return `<div class="notif-item unread" onclick="selectStock('${ticker}');toggleNotif()">
+      <div class="notif-name">${s.flag} ${s.name} <span style="color:${col}">${sign}${p.change.toFixed(2)}%</span></div>
+      <div class="notif-body">$${p.price.toFixed(2)} · ${s.desc.slice(0,60)}…</div>
     </div>`;
-  }).join('') || '<div style="padding:12px;font-family:DM Mono,monospace;font-size:9px;color:var(--mu);">Fetching live alerts…</div>';
+  }).join('');
+
+  const newsHtml = newsAlerts.map(n => {
+    return `<div class="notif-item" onclick="selectNews('${n.id}');toggleNotif()">
+      <div class="notif-name">${(n.flags||['🌍'])[0]} ${n.hl.slice(0,60)}…</div>
+      <div class="notif-body">${n.src} · ${n.ago}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = (movers.length ? `<div class="notif-head" style="padding:5px 13px;font-size:8px;">Movers</div>${moverHtml}` : '') +
+    (newsAlerts.length ? `<div class="notif-head" style="padding:5px 13px;font-size:8px;">Latest signals</div>${newsHtml}` : '');
 }
 
 // ── MISC ──────────────────────────────────────────────────────────────────────
