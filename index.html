@@ -1686,18 +1686,39 @@ function drawArticlesGraph() {
 
   if(simulation) simulation.stop();
 
-  // Pre-compute card dimensions based on content
+  // Pre-compute card dimensions — everything must fit, no clipping
+  const CARD_W = 220; // fixed width, generous
+  const CHARS_PER_LINE = Math.floor((CARD_W - 18) / 5.2); // ~38 chars per line at font-size 8.5
+
   nodes.forEach(n => {
-    const titleLen = (n.newsRef?.hl || n.label).length;
-    const stocksLen = (n.stocks||[]).slice(0,5).map(id=>STOCKS[id]?.name||id).join(' · ').length;
-    n.cardW = Math.max(180, Math.min(240, 140 + Math.ceil(titleLen/3)));
-    n.cardH = titleLen > 55 ? 80 : 68;
+    const title = n.newsRef?.hl || n.label || '';
+    const stocks = (n.stocks||[]).map(id => STOCKS[id]?.name || id);
+
+    // Title lines
+    const titleLines = [];
+    let remaining = title;
+    while(remaining.length > 0) {
+      titleLines.push(remaining.slice(0, CHARS_PER_LINE));
+      remaining = remaining.slice(CHARS_PER_LINE);
+    }
+    n.titleLines = titleLines;
+
+    // Stock lines — 4 stocks per line
+    const stockLines = [];
+    for(let i=0; i<stocks.length; i+=4) {
+      stockLines.push(stocks.slice(i, i+4).join(' · '));
+    }
+    n.stockLines = stockLines;
+
+    // Card height: header(22) + divider(6) + title(13*lines) + gap(4) + stocks(11*lines) + padding(12)
+    n.cardW = CARD_W;
+    n.cardH = 22 + 6 + (titleLines.length * 13) + 4 + (stockLines.length * 11) + 12;
   });
 
   simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d=>d.id).distance(300))
     .force('charge', d3.forceManyBody().strength(-400))
-    .force('collide', d3.forceCollide().radius(d => d.cardW/2+18).strength(0.85))
+    .force('collide', d3.forceCollide().radius(d => Math.max(d.cardW, d.cardH||80)/2+25).strength(0.9))
     .force('center', d3.forceCenter(0, 0).strength(0.015))
     .alphaDecay(0.05)     // faster settle
     .velocityDecay(0.6);  // more damping = less chaos
@@ -1772,31 +1793,35 @@ function drawArticlesGraph() {
         .attr('y1', d => -(d.cardH||70)/2+18).attr('y2', d => -(d.cardH||70)/2+18)
         .attr('stroke', d => `${d.color}40`).attr('stroke-width',0.5);
 
-      // Headline
+      // Headline — all lines, nothing hidden
       g.append('text').attr('class','label')
-        .attr('x', d => -(d.cardW||200)/2+9).attr('y', d => -(d.cardH||70)/2+30)
+        .attr('x', d => -(d.cardW||220)/2+9).attr('y', d => -(d.cardH||80)/2+30)
         .attr('font-family','Inter,sans-serif')
         .attr('font-size', 8.5).attr('fill', 'var(--tx)').attr('font-weight','500')
         .each(function(d) {
-          const text = d.newsRef?.hl || d.label;
-          const maxW = (d.cardW||200) - 18;
-          const charsPerLine = Math.floor(maxW / 5.2);
-          const line1 = text.slice(0, charsPerLine);
-          const line2 = text.length > charsPerLine
-            ? text.slice(charsPerLine, charsPerLine*2) + (text.length > charsPerLine*2 ? '…' : '')
-            : '';
-          d3.select(this).append('tspan').attr('x', -(d.cardW||200)/2+9).attr('dy', 0).text(line1);
-          if(line2) d3.select(this).append('tspan').attr('x', -(d.cardW||200)/2+9).attr('dy', 11).text(line2);
+          const sel = d3.select(this);
+          (d.titleLines||[d.label]).forEach((line, i) => {
+            sel.append('tspan')
+              .attr('x', -(d.cardW||220)/2+9)
+              .attr('dy', i===0 ? 0 : 13)
+              .text(line);
+          });
         });
 
-      // Stocks row at bottom
+      // Stocks — all lines, nothing hidden
       g.append('text').attr('class','stocks-row')
-        .attr('x', d => -(d.cardW||200)/2+9).attr('y', d => (d.cardH||70)/2-7)
+        .attr('x', d => -(d.cardW||220)/2+9)
+        .attr('y', d => -(d.cardH||80)/2 + 30 + (d.titleLines?.length||1)*13 + 8)
         .attr('font-family','DM Mono,monospace')
         .attr('font-size', 7.5).attr('fill', d => `${d.color}cc`).attr('font-weight','500')
-        .text(d => {
-          const names = (d.stocks||[]).slice(0,5).map(id=>STOCKS[id]?.name||id).join(' · ');
-          return names + ((d.stocks||[]).length>5?' …':'');
+        .each(function(d) {
+          const sel = d3.select(this);
+          (d.stockLines||[]).forEach((line, i) => {
+            sel.append('tspan')
+              .attr('x', -(d.cardW||220)/2+9)
+              .attr('dy', i===0 ? 0 : 11)
+              .text(line);
+          });
         });
 
       return g;
