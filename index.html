@@ -84,9 +84,12 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
 .p1-inner{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .news-col{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .news-col.full{flex:1;}
-.news-col.split{flex:1;border-bottom:1px solid var(--b1);}
-.pred-col{height:0;overflow:hidden;display:flex;flex-direction:column;transition:height .3s;flex-shrink:0;}
+.news-col.split{flex:1;border-bottom:none;}
+.pred-col{height:0;overflow:hidden;display:flex;flex-direction:column;transition:none;flex-shrink:0;}
 .pred-col.active{height:240px;}
+.v-resizer{height:4px;background:transparent;cursor:row-resize;flex-shrink:0;transition:background .15s;display:none;}
+.v-resizer.active{display:block;}
+.v-resizer:hover,.v-resizer.drag{background:var(--acc);}
 .feed-scroll{flex:1;overflow-y:auto;}
 .feed-scroll::-webkit-scrollbar{width:3px;}
 .feed-scroll::-webkit-scrollbar-thumb{background:var(--dm);border-radius:2px;}
@@ -274,6 +277,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;display
       <div class="news-col full" id="news-col">
         <div class="feed-scroll" id="feed-list"></div>
       </div>
+      <div class="v-resizer" id="v-resizer"></div>
       <div class="pred-col" id="pred-col">
         <div class="col-hd"><span class="col-hd-t">Prediction markets</span><span class="col-cnt" id="pred-cnt">—</span></div>
         <div class="feed-scroll" id="pred-list"></div>
@@ -974,7 +978,31 @@ function toggleSplit(){
   document.getElementById('split-btn').classList.toggle('on',splitActive);
   document.getElementById('pred-col').classList.toggle('active',splitActive);
   document.getElementById('news-col').classList.toggle('split',splitActive);
+  document.getElementById('v-resizer').classList.toggle('active',splitActive);
   if(splitActive) applyFilters();
+}
+
+function initVResizer(){
+  const r=document.getElementById('v-resizer');
+  const top=document.getElementById('news-col');
+  const bot=document.getElementById('pred-col');
+  let drag=false,sy,st,sb;
+  r.addEventListener('mousedown',e=>{
+    drag=true;sy=e.clientY;st=top.offsetHeight;sb=bot.offsetHeight;
+    r.classList.add('drag');document.body.style.cursor='row-resize';document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const dy=e.clientY-sy;
+    const newTop=Math.max(80,st+dy);
+    const newBot=Math.max(80,sb-dy);
+    top.style.flex='none';top.style.height=newTop+'px';
+    bot.style.height=newBot+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!drag)return;drag=false;
+    r.classList.remove('drag');document.body.style.cursor='';document.body.style.userSelect='';
+  });
 }
 
 // ── RESIZERS ──────────────────────────────────────────────────────────────────
@@ -1030,6 +1058,7 @@ async function init() {
   applyFilters();
   initResizer('r1','p1','p2');
   initResizer('r2','p2','p3');
+  initVResizer();
   updateBourseClocks();
   setInterval(updateBourseClocks, 30000);
 
