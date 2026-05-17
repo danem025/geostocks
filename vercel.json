@@ -1,15 +1,17 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/news.js", "use": "@vercel/node" },
-    { "src": "api/prices.js", "use": "@vercel/node" },
-    { "src": "api/predictions.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" }
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/5 * * * *"
+    }
   ],
-  "routes": [
-    { "src": "/api/news", "dest": "/api/news.js" },
-    { "src": "/api/prices", "dest": "/api/prices.js" },
-    { "src": "/api/predictions", "dest": "/api/predictions.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=120" }
+      ]
+    }
   ]
 }
